@@ -1,0 +1,158 @@
+name: agentic-sdlc-planning
+display_name: Agentic SDLC Planning
+description: 'Agentic software lifecycle with PDD planning pipeline, adversarial review, verification, and a multi-gate status graph. Three roles: engineer (full SDLC), sentinel (merge gatekeeper), and chief-of-staff (operator''s AI assistant).'
+version: '1.0.0'
+schema_version: '1.0'
+roles:
+- name: engineer
+  description: Full SDLC engineer — PO, architect, dev, QE, SRE, and content writer in one member
+- name: chief-of-staff
+  description: The operator's chief of staff — handles operational tasks, reviews member activity, and drives improvements
+- name: sentinel
+  description: PR merge gatekeeper and orphaned PR triage
+labels:
+- name: kind/docs
+  color: '0075CA'
+  description: Label modifier — routes any issue type to content writer hats
+- name: role/chief-of-staff
+  color: '5319E7'
+  description: Assigned to chief of staff
+- name: role/sentinel
+  color: B60205
+  description: Assigned to sentinel
+- name: project/<project>
+  color: '0E8A16'
+  description: Associates issue with a project (template — actual label uses project name)
+- name: plan:auto
+  color: FBCA04
+  description: Auto-advance at human:po:plan-review — skip human approval for planning
+- name: accept:auto
+  color: FBCA04
+  description: Auto-advance at human:po:accept — skip human acceptance
+- name: tasks:inline
+  color: D4C5F9
+  description: Track tasks as inline sub-issues instead of separate issues
+- name: tasks:off
+  color: D4C5F9
+  description: Track tasks only as .code-task-NN.md files (no GitHub issues)
+- name: agent-internal
+  color: EDEDED
+  description: Agent-internal task — excluded from default board view
+- name: bug:simple
+  color: D93F0B
+  description: Simple bug — fast path without complexity analysis
+- name: bug:complex
+  color: B60205
+  description: Complex bug — full planning path with story creation
+- name: planning:backward-generate
+  color: '0E8A16'
+  description: Trigger backward artifact generation for the work item
+statuses:
+- name: human:po:triage
+  description: New epic or bug, awaiting human evaluation
+- name: human:po:backlog
+  description: Accepted, prioritized, awaiting activation
+- name: eng:lead:plan
+  description: Engineer (lead hat) creating planning artifacts
+- name: human:po:plan-review
+  description: Planning artifacts awaiting human review
+- name: eng:lead:breakdown
+  description: Engineer (lead hat) creating story issues from plan
+- name: eng:lead:monitor
+  description: Engineer (lead hat) monitoring story execution
+- name: human:po:accept
+  description: Work awaiting human acceptance
+- name: done
+  description: Complete
+- name: eng:dev:implement
+  description: Engineer (developer hat) implementing
+- name: eng:qe:verify
+  description: Engineer (QE hat) verifying implementation
+- name: snt:gate:merge
+  description: Sentinel running merge gates on PR
+- name: eng:qe:investigate
+  description: Engineer (QE hat) investigating bug
+- name: eng:qe:monitor
+  description: Engineer (QE hat) monitoring linked story
+- name: cos:exec:todo
+  description: Task awaiting chief of staff
+- name: cos:exec:in-progress
+  description: Chief of staff working on task
+- name: cos:exec:done
+  description: Task completed by chief of staff
+projects:
+- name: botminter
+  fork_url: https://github.com/devguyio-bot-squad/botminter.git
+views:
+- name: Engineer
+  prefixes:
+  - eng
+  also_include:
+  - done
+- name: Human Gates
+  prefixes:
+  - human
+  also_include:
+  - done
+- name: Sentinel
+  prefixes:
+  - snt
+  also_include:
+  - done
+- name: Chief of Staff
+  prefixes:
+  - cos
+  also_include:
+  - done
+coding_agents:
+  claude-code:
+    name: claude-code
+    display_name: Claude Code
+    context_file: CLAUDE.md
+    agent_dir: '.claude'
+    binary: claude
+    system_prompt_flag: '--append-system-prompt-file'
+    skip_permissions_flag: '--dangerously-skip-permissions'
+default_coding_agent: claude-code
+bridges:
+- name: tuwunel
+  display_name: Matrix (Tuwunel)
+  description: Matrix bridge via Tuwunel homeserver (local Podman container)
+  type: local
+- name: telegram
+  display_name: Telegram
+  description: Telegram Bot API for team communication
+  type: external
+- name: rocketchat
+  display_name: Rocket.Chat
+  description: Rocket.Chat bridge for team communication (local Podman Pod)
+  type: local
+meetings:
+- name: planning
+  description: Collaborative planning session
+  member: engineer
+  hat: lead_plan-create
+  prompt: /pdd
+  args:
+  - name: idea
+    positional: true
+    required: false
+    description: Rough idea to plan
+  - name: epic
+    positional: false
+    long: epic
+    required: false
+    description: Epic issue number to load as input
+- name: verification
+  description: Verify acceptance criteria for completed work
+  member: engineer
+  hat: qe_verify
+  prompt: /verification
+  args:
+  - name: work-item
+    positional: true
+    required: true
+    description: Issue number to verify
+bridge: tuwunel
+operator:
+  bridge_username: bmadmin
