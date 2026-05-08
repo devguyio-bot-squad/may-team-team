@@ -81,7 +81,8 @@ pub struct TmuxSession {
 }
 
 impl TmuxSession {
-    pub fn new(team_name: &str) -> Self;
+    /// Validates team_name against `[a-zA-Z0-9_-]` and constructs session/socket names.
+    pub fn new(team_name: &str) -> Result<Self>;
 
     // Prerequisites
     pub fn check_tmux_available() -> Result<TmuxVersion>;
@@ -93,14 +94,15 @@ impl TmuxSession {
     pub fn destroy_if_exists(&self) -> Result<()>;
 
     // Window lifecycle
-    pub fn create_window(&self, name: &str, cmd: &str, cwd: &Path, envs: &[(&str, &str)]) -> Result<u32>;
+    pub fn create_window(&self, name: &str, cmd: &[&str], cwd: &Path, envs: &[(&str, &str)]) -> Result<u32>;
     pub fn window_exists(&self, name: &str) -> bool;
+    pub fn is_pane_dead(&self, window: &str) -> Result<bool>;
     pub fn kill_window_process(&self, name: &str) -> Result<()>;
     pub fn remove_window(&self, name: &str) -> Result<()>;
+    pub fn remove_dead_window(&self, name: &str) -> Result<()>;
 
     // Querying
     pub fn list_windows(&self) -> Result<Vec<TmuxWindow>>;
-    pub fn is_pane_dead(&self, window: &str) -> Result<bool>;
     pub fn pane_pid(&self, window: &str) -> Result<u32>;
 
     // Operator interaction
@@ -136,12 +138,20 @@ All methods shell out to the `tmux` CLI via `std::process::Command`. We do NOT u
 pub struct TmuxConfig;
 
 impl TmuxConfig {
-    pub fn ensure_written() -> Result<PathBuf>;
+    /// Unconditionally writes the embedded config to ~/.botminter/tmux.conf
+    /// with 0600 permissions. Uses atomic write (temp file + rename).
+    pub fn ensure_written() -> Result<()>;
+
+    /// Returns the path: ~/.botminter/tmux.conf
+    pub fn path() -> PathBuf;
+
     pub fn config_content() -> &'static str;
 }
 ```
 
-The config content is a `const` string embedded in the binary (not `include_str!` from a file — it's small enough to inline). `ensure_written()` writes it to `~/.botminter/tmux.conf` if it doesn't exist or if the content has changed (hash comparison).
+The config content is a `const` string embedded in the binary (not `include_str!` from a file — it's small enough to inline). `ensure_written()` unconditionally writes it to `~/.botminter/tmux.conf` on every startup using atomic write (temp file + rename, same pattern as `state.json`). The file is set to `0600` permissions. No hash comparison — the file is small, BotMinter-owned, and the header says "do not edit." Unconditional overwrite is simpler and avoids edge cases around stale or tampered configs.
+
+The `TmuxSession` resolves the config path internally via `TmuxConfig::path()` — callers of `TmuxSession` never need to thread the path through.
 
 ### 2. `formation/launch.rs` (Modified)
 
@@ -157,11 +167,16 @@ Command::new("ralph") → stdin/stdout/stderr = null → child.spawn() → reap_
 TmuxSession::create_window(member_name, command_string, workspace, env_vars) → return PID from pane
 ```
 
-The `TmuxSession` is passed into `launch_ralph()` and `launch_brain()` as a parameter. The functions build the command string and env vars, then delegate to `TmuxSession::create_window()` which:
-1. Constructs the full command with env var exports prepended
-2. Calls `tmux new-window -t <session> -n <member> -c <workspace> '<command>'`
-3. Queries `#{pane_pid}` to get the actual process PID inside the window
-4. Returns the PID for state.json tracking
+The `TmuxSession` is passed into `launch_ralph()` and `launch_brain()` as a parameter. The functions build the command arguments and env var pairs, then delegate to `TmuxSession::create_window()` which:
+1. Validates the window name against `[a-zA-Z0-9_-]` (rejects shell metacharacters)
+2. Constructs the tmux command using `-e KEY=VALUE` flags for each env var (NOT shell string interpolation — secrets are never embedded in the command string)
+3. Calls `tmux -L botminter new-window -t <session> -n <member> -c <workspace> -e K1=V1 -e K2=V2 -- <cmd> <args...>`
+4. Queries `#{pane_pid}` to get the actual process PID inside the window
+5. Returns the PID for state.json tracking
+
+**Security note:** The `-e` flag passes env vars via tmux's internal mechanism, not through the shell. This prevents secrets from appearing in `#{pane_start_command}` or in `ps` output. The command arguments are passed as a list (not a shell string), matching the current `Command::new()` pattern in `launch_ralph()`/`launch_brain()`.
+
+The existing brain stderr log file redirect (`stderr(Stdio::from(log_file))`) is removed — tmux panes capture all stdout and stderr natively, satisfying SESS-03.
 
 **Signature changes:**
 
@@ -204,6 +219,12 @@ fn start_local_members(...) -> Result<StartResult> {
     // 4. Existing member loop, but passing tmux to launch functions
     for member in members {
         // ... existing credential resolution ...
+
+        // Clean up dead window from previous run before creating new one (A3 fix)
+        if tmux.window_exists(&member) && tmux.is_pane_dead(&member)? {
+            tmux.remove_dead_window(&member)?;
+        }
+
         let pid = if is_brain {
             launch_brain(&tmux, &config)?
         } else {
@@ -248,6 +269,8 @@ fn shell(&self) -> Result<()> {
 **`member_status()`**: Optionally augment with tmux window state (dead/alive pane).
 
 **`start_members()`**: The daemon-mediated path also needs tmux. Since `start_members()` delegates to the daemon HTTP API, and the daemon internally calls `start_local_members()`, the tmux integration happens inside `start_local_members()` — no change needed at the Formation trait level.
+
+**Daemon tmux access:** The daemon process is spawned by `bm start` (or `bm daemon start`) and inherits the operator's environment, including `PATH` (which contains `tmux`). When the daemon's HTTP handler calls `start_local_members()`, that function constructs its own `TmuxSession` from the team name (available via the daemon's startup config and the `StartParams` struct). The daemon and all member processes run on the same host, so the tmux socket (`/tmp/tmux-<uid>/botminter`) is accessible. No daemon code changes are needed beyond what `start_local_members()` already provides.
 
 ### 6. `commands/attach.rs` (Modified)
 
@@ -321,6 +344,10 @@ set -wg window-status-separator ""
 
 # ── Mouse ────────────────────────────────────────────
 set -g mouse on
+
+# ── Security ─────────────────────────────────────────
+# Prevent operator's env vars from leaking into agent sessions on attach
+set -g update-environment ""
 ```
 
 The status bar shows:
@@ -352,10 +379,11 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 | tmux not installed | `bm start` fails with: "tmux is required but not found. Install it with: apt install tmux / dnf install tmux" |
 | tmux version < 3.0 | `bm start` fails with: "tmux 3.0+ is required (found X.Y). Please upgrade." |
 | Session already exists on full start | Destroy and recreate (LIFE-01) |
-| Window name collision on single start | Skip member (already running) — same as current PID-based skip |
+| Window name collision (live process) on single start | Skip member (already running) — same as current PID-based skip |
+| Window name collision (dead pane) on single start | Remove the dead window, then create a fresh one for the new member launch |
 | tmux server dies mid-operation | Processes inside windows die (SIGTERM from tmux). State.json still has PIDs → `is_alive()` detects death → `cleanup_stale()` cleans up on next `bm start` or `bm status` |
 | `bm attach` with no session | Error: "No tmux session found. Start members first with: bm start" |
-| `bm attach` from inside tmux | Works but creates nested session. The status bar branding makes it clear which session is BotMinter's. Documenting `C-b d` for detach handles exit. |
+| `bm attach` from inside tmux | Detect `$TMUX` env var and print a warning: "You are already inside a tmux session. BotMinter uses a separate tmux server. To detach from the BotMinter session, press C-b d." Then proceed with the attach. |
 
 ## Acceptance Criteria
 
@@ -392,10 +420,10 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 - **Alternatives:** Default server (shared with user), per-team socket (`-L bm-<team>`)
 - **Rationale:** Complete isolation from the user's personal tmux. Per-team socket is unnecessary since session names already namespace by team, and a single socket simplifies `bm attach`. Validated by Overmind and Agent Deck patterns (R-03).
 
-**D-02:** Embed tmux.conf as a const string, write to `~/.botminter/tmux.conf`
-- **Chosen:** Const string in Rust source, written to `~/.botminter/tmux.conf` at startup
-- **Alternatives:** `include_str!` from a file in the repo, ship as a separate file alongside the binary, generate dynamically per session
-- **Rationale:** Matches the project's existing pattern of embedding content in the binary (profiles use `include_dir`). The config is small and static. Writing to `~/.botminter/` keeps all BotMinter state in one place. Hash comparison on write avoids unnecessary disk writes.
+**D-02:** Embed tmux.conf as a const string, unconditionally write to `~/.botminter/tmux.conf`
+- **Chosen:** Const string in Rust source, unconditionally written to `~/.botminter/tmux.conf` at startup with `0600` permissions via atomic write
+- **Alternatives:** `include_str!` from a file in the repo, ship as a separate file alongside the binary, generate dynamically per session, hash comparison to avoid unnecessary writes
+- **Rationale:** Matches the project's existing pattern of embedding content in the binary (profiles use `include_dir`). The config is small and static. Writing to `~/.botminter/` keeps all BotMinter state in one place. Unconditional overwrite is simpler than hash comparison and ensures tampered or stale configs are always replaced. Atomic write (temp + rename) prevents partial writes. `0600` permissions prevent other users from reading or modifying the file.
 
 **D-03:** tmux module lives in `formation/local/tmux/` as a formation concern
 - **Chosen:** `formation/local/tmux/mod.rs` + `formation/local/tmux/config.rs`
@@ -417,6 +445,16 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 - **Alternatives:** Add tmux_session/tmux_window fields to `MemberRuntime`
 - **Rationale:** The tmux session name is deterministic (`bm-<team>`) and the window name equals the member name. No state needs to be stored — it's derivable. PID tracking still works because `#{pane_pid}` gives the actual process PID on the same host.
 
+**D-07:** No trait abstraction over `TmuxSession` — concrete type, tested via real tmux
+- **Chosen:** `TmuxSession` is a concrete struct, not a trait implementation. Launch functions accept `&TmuxSession` directly.
+- **Alternatives:** Extract `SessionManager` trait with `TmuxSession` as one impl, allowing mock implementations for CI
+- **Rationale:** The project does not use traits for other external tool wrappers (`gh` CLI, `ralph` CLI, `lima` CLI). The test philosophy is E2E against real infrastructure (ADR-0004, ADR-0009), not mocking. `check_prerequisites()` already checks for `ralph` in PATH the same static way. Adding a trait is premature abstraction for alpha — if tmux needs to be swapped for Zellij later, the trait can be extracted then. CI environments that run integration tests must have tmux installed, which is a trivial dependency (`apt install tmux`).
+
+**D-08:** Unset `TMUX_TMPDIR` before tmux invocations to enforce default socket security
+- **Chosen:** All `TmuxSession` methods unset `TMUX_TMPDIR` in the `Command` environment before invoking `tmux`
+- **Alternatives:** Verify socket directory permissions after creation, use `-S` with an explicit socket path
+- **Rationale:** tmux's default socket directory (`/tmp/tmux-<uid>/`) has `0700` permissions, which is secure. If `TMUX_TMPDIR` is inherited from the operator's environment and points to a shared location, the socket would be accessible to other users. Unsetting it ensures tmux always uses its secure default. This is cheaper and more robust than post-creation permission checks.
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -432,7 +470,8 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 - Window create/list/kill lifecycle
 - `#{pane_pid}` returns correct PID for a known command
 - `remain-on-exit` keeps window after process exits
-- Custom config file write with hash comparison
+- Dead window cleanup before re-creating a member window
+- Config file written with correct permissions
 
 ### E2E Tests
 
@@ -451,6 +490,51 @@ Per ADR-0009 and project CLAUDE.md, exploratory tests on `bm-test-user@localhost
 - Incremental window addition (`bm start <member>`)
 - Post-mortem scrollback inspection after `bm stop`
 - Daemon-triggered launches into tmux
+
+## Impact on Existing System
+
+### Changed Function Signatures
+
+| Function | Change |
+|----------|--------|
+| `launch_ralph()` | Gains `tmux: &TmuxSession` parameter. No longer spawns `Command::new("ralph")` directly — delegates to `tmux.create_window()`. |
+| `launch_brain()` | Gains `tmux: &TmuxSession` parameter. Brain stderr log file redirect removed — tmux pane captures stderr natively. |
+| `start_local_members()` | Gains tmux session setup at the top (prerequisites check, session create/destroy). Passes `&tmux` to launch functions. Adds dead-window cleanup before each member launch. |
+| `LinuxLocalFormation::shell()` | Changes from returning an error to attaching to the tmux session. |
+| `LinuxLocalFormation::check_prerequisites()` | Adds tmux availability and version check. |
+| `StatusInfo` (in `state/dashboard.rs`) | Gains `tmux: Option<TmuxStatusInfo>` field. |
+
+### Backward Compatibility
+
+The old bare-process launch path is **removed**, not feature-gated. This is consistent with the project's alpha policy: "Breaking changes are expected. No migration paths, no backwards compatibility shims." Operators who upgrade will get tmux-based launches automatically. tmux becomes a hard prerequisite.
+
+### State Migration
+
+No migration needed. `state.json` schema is unchanged — PID tracking works identically. Existing `state.json` files from pre-tmux era are compatible because PID values are still valid process IDs on the same host.
+
+The `reap_child()` function is retained for daemon process spawning but is no longer used for member launches.
+
+## Security Considerations
+
+### Threat Model
+
+Access to the tmux session is equivalent to full agent access. An attacker who can attach to the `botminter` socket can:
+- Read all agent output (including any secrets logged during errors)
+- Send keystrokes to agent processes
+- Inspect agent environment variables
+
+This is mitigated by tmux's default socket security: the socket lives in `/tmp/tmux-<uid>/` with `0700` directory permissions, accessible only to the running user. `TMUX_TMPDIR` is explicitly unset (D-08) to prevent inherited misconfigurations.
+
+### Credential Handling
+
+- **Environment variables:** Agent credentials (GitHub tokens, bridge tokens) are passed via tmux's `-e KEY=VALUE` flag, NOT as shell string interpolation. This prevents secrets from appearing in `#{pane_start_command}` metadata or `ps` output.
+- **Scrollback:** Agent output may contain sensitive information in error traces. This is inherent to the observability requirement — you cannot observe agents without seeing their output. The 50,000-line scrollback buffer persists until the session is destroyed.
+- **Post-mortem windows:** Dead panes from `bm stop` retain scrollback. On full `bm start`, the entire session is destroyed (LIFE-01), clearing all dead panes. On single-member restarts, dead windows are removed before creating new ones. For explicit cleanup, operators can run `tmux -L botminter kill-session -t bm-<team>`.
+- **Config file:** Written with `0600` permissions via atomic write. The `~/.botminter/` directory should be `0700` (same as `~/.ssh/`).
+
+### Socket Security
+
+The `-L botminter` socket is created under `/tmp/tmux-<uid>/` with `0700` directory permissions (tmux default). All `TmuxSession` methods unset `TMUX_TMPDIR` to prevent redirection to a less secure location.
 
 ## Appendices
 
@@ -490,7 +574,7 @@ sequenceDiagram
     Tmux->>TmuxSrv: tmux -L botminter kill-session / new-session
     loop For each member
         SM->>Tmux: create_window(member, cmd, workspace, envs)
-        Tmux->>TmuxSrv: tmux -L botminter new-window -n member
+        Tmux->>TmuxSrv: tmux -L botminter new-window -e K=V -n member
         Tmux->>TmuxSrv: tmux display-message #{pane_pid}
         Tmux-->>SM: PID
         SM->>SM: record PID in state.json
