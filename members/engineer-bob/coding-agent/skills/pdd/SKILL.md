@@ -2,7 +2,7 @@
 
 ## Overview
 
-This skill guides you through the process of transforming a rough idea into a detailed design document with an implementation plan and todo list. It follows the Prompt-Driven Development methodology to systematically refine your idea, conduct necessary research, create a comprehensive design, and develop an actionable implementation plan. The process is designed to be iterative, allowing movement between requirements clarification and research as needed.
+This skill guides you through the process of transforming a rough idea into a detailed design document with an story breakdown and todo list. It follows the Prompt-Driven Development methodology to systematically refine your idea, conduct necessary research, create a comprehensive design, and develop an actionable story breakdown. The process is designed to be iterative, allowing movement between requirements clarification and research as needed.
 
 All catalogable entities produced by this skill receive stable IDs for cross-referencing across the pipeline:
 
@@ -13,7 +13,7 @@ All catalogable entities produced by this skill receive stable IDs for cross-ref
 | Research Topic | `R-NN` | Per epic | Sequential in Step 4 |
 | Acceptance Criterion | `AC-NN` | Per design doc | Sequential in Step 7 |
 | Decision | `D-NN` | Per design doc | Sequential in Step 7 |
-| Implementation Step | `STEP-NN` | Per plan.md | Sequential in Step 8 |
+| Story | `STORY-NN` | Per plan.md | Sequential in Step 8 |
 
 ## Parameters
 
@@ -77,7 +77,7 @@ This skill supports crash recovery and resumability. At the start of each run, c
 | Research | 4 | `{epic_dir}/research/` directory contains R-NN files |
 | Requirements | 6 | `{epic_dir}/requirements.md` exists with CATEGORY-NN entries |
 | Design | 7 | `{epic_dir}/design.md` exists with AC-NN entries |
-| Plan | 8 | `{epic_dir}/plan.md` exists with STEP-NN entries |
+| Plan | 8 | `{epic_dir}/plan.md` exists with STORY-NN entries |
 
 **Constraints:**
 - You MUST check for existing artifacts at the start of Step 1 before creating the planning structure
@@ -96,7 +96,7 @@ After completing each major phase, you MUST commit the artifacts in `{epic_dir}/
 | Research (Step 4) | `research/*.md` | `docs(specs): complete research for {epic_name}` |
 | Requirements (Step 6) | `requirements.md` | `docs(specs): extract requirements for {epic_name}` |
 | Design (Step 7) | `design.md` | `docs(specs): create design for {epic_name}` |
-| Plan (Step 8) | `plan.md`, updated `requirements.md` (traceability) | `docs(specs): create implementation plan for {epic_name}` |
+| Story breakdown (Step 8) | `plan.md`, updated `requirements.md` (traceability) | `docs(specs): create story breakdown for {epic_name}` |
 
 **Constraints:**
 - You MUST `git add` and `git commit` the phase artifacts after each phase completes
@@ -106,14 +106,14 @@ After completing each major phase, you MUST commit the artifacts in `{epic_dir}/
 
 ## Adversarial Review
 
-After each major planning artifact is produced (design document, implementation plan), you MUST spawn 3 adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer examines the artifact from a distinct perspective tailored to the artifact type. The reviewers are internal to this skill — they are not separate hats.
+After each major planning artifact is produced (design document, story breakdown), you MUST spawn 3 adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer examines the artifact from a distinct perspective tailored to the artifact type. The reviewers are internal to this skill — they are not separate hats.
 
 **Perspectives by artifact type:**
 
 | Artifact | Perspective 1 | Perspective 2 | Perspective 3 |
 |----------|--------------|--------------|--------------|
 | **Design Document** (`design.md`) | **Architecture** — Is the design sound? Separation of concerns? Scalability? Does it handle the requirements? | **Security** — Vulnerabilities? Input validation? Auth boundaries? Data exposure? | **Maintainability** — Complexity? Coupling? Will this be understandable in 6 months? Extension points? |
-| **Implementation Plan** (`plan.md`) | **Scope** — Are steps appropriately sized? Any step too large to be demoable? Any step too trivial? | **Dependency Correctness** — Are step dependencies right? Missing prerequisites? Orphaned steps? Can this actually be built in this order? | **Risk** — What could go wrong at each step? Blast radius? Rollback strategy? Integration risks? |
+| **Story Breakdown** (`plan.md`) | **Scope** — Are stories appropriately sized? Any story too large to be demoable? Any story too trivial? | **Dependency Correctness** — Are story dependencies right? Missing prerequisites? Orphaned stories? Can this actually be built in this order? | **Risk** — What could go wrong at each story? Blast radius? Rollback strategy? Integration risks? |
 
 **Review feedback format:**
 
@@ -179,7 +179,7 @@ Set up a directory structure to organize all planning artifacts created during t
 **Constraints:**
 - You MUST first check if `{epic_dir}/` already exists with artifacts from a previous run (see Resumability section)
 - If existing artifacts are found, you MUST identify the last completed phase and skip to the next incomplete phase:
-  - If `plan.md` exists with STEP-NN entries → all phases complete, proceed to Step 9
+  - If `plan.md` exists with STORY-NN entries → all phases complete, proceed to Step 9
   - If `design.md` exists with AC-NN entries → resume at Step 8 (plan)
   - If `requirements.md` exists with CATEGORY-NN entries → resume at Step 7 (design)
   - If `research/` contains R-NN files → resume at Step 6 (requirements)
@@ -267,7 +267,7 @@ After completing the initial round of requirements clarification (at least 3-5 q
 
 - **Clear single objective:** The idea describes one well-defined deliverable, not a system or set of features
 - **No technology unknowns:** All technologies and patterns are established — no research phase would be needed
-- **Single-step plan:** The implementation would be a single step (one PR, one deliverable), not multiple incremental steps
+- **Single story:** The implementation would be a single story (one PR, one deliverable), not multiple incremental stories
 - **No architectural decisions:** No new patterns, no system design trade-offs, no cross-component coordination
 
 If 3 or more story-scope signals are present:
@@ -406,7 +406,7 @@ Extract and formalize requirements from the idea-honing Q&A into a standalone `r
 
 ## Traceability Matrix
 
-| Requirement | Acceptance Criteria | Implementation Step | Status |
+| Requirement | Acceptance Criteria | Story | Status |
 |-------------|--------------------|--------------------|--------|
 | CATG-01 | — | — | Pending |
 ````
@@ -414,7 +414,7 @@ Extract and formalize requirements from the idea-honing Q&A into a standalone `r
 - The **Source** column MUST reference the `Q-NN` IDs from idea-honing.md that informed the requirement
 - **Priority** MUST be one of: `must-have`, `should-have`, `could-have`, `wont-have`
 - Requirement text MUST use RFC 2119 keywords (MUST, SHOULD, MAY) to express obligation level
-- The **Traceability Matrix** at the bottom MUST list every requirement ID. The Acceptance Criteria and Implementation Step columns are initially `—` (populated in later steps when the design doc and plan are produced)
+- The **Traceability Matrix** at the bottom MUST list every requirement ID. The Acceptance Criteria and Story columns are initially `—` (populated in later steps when the design doc and plan are produced)
 **Constraints (interactive mode only):**
 - You MUST present the extracted requirements to the user for review
 - You MUST iterate on the requirements based on user feedback
@@ -445,7 +445,7 @@ Develop a comprehensive design document based on the requirements and research. 
   - Design Decisions (each tagged with `D-NN` ID — D-01, D-02, etc.)
   - Testing Strategy
   - Appendices (Technology Choices, Research Findings, Alternative Approaches)
-  - Traceability Matrix (LAST section — maps requirements to acceptance criteria and implementation steps)
+  - Traceability Matrix (LAST section — maps requirements to acceptance criteria and stories)
 - You MUST assign each acceptance criterion a sequential `AC-NN` ID (AC-01, AC-02, ...). Acceptance criteria MUST be in Given-When-Then (GWT) format and reference the `CATEGORY-NN` requirement(s) they verify.
 - You MUST assign each design decision a sequential `D-NN` ID (D-01, D-02, ...). Each decision MUST include the chosen option, alternatives considered, and rationale.
 - The Requirements Summary section MUST reference requirements.md by CATEGORY-NN IDs and MUST NOT duplicate the full requirement text. A brief paraphrase or the requirement title is acceptable for readability, but the authoritative text lives in requirements.md.
@@ -460,7 +460,7 @@ Develop a comprehensive design document based on the requirements and research. 
 - You SHOULD highlight design decisions and their rationales, referencing research findings where applicable
 - You MUST include a Traceability Matrix as the LAST section of the design document (after Appendices)
 - The Traceability Matrix MUST list every requirement (`CATEGORY-NN`) from requirements.md, mapped to the acceptance criteria (`AC-NN`) defined in this design document that verify it
-- The **Implementation Step** column MUST initially contain `—` (populated in Step 8 after the plan is produced)
+- The **Story** column MUST initially contain `—` (populated in Step 8 after the plan is produced)
 - The **Verification Status** column MUST initially contain `Pending`
 - Every requirement ID in requirements.md MUST appear in the matrix — a missing requirement indicates a gap in the design that must be addressed before proceeding
 
@@ -469,7 +469,7 @@ Develop a comprehensive design document based on the requirements and research. 
 ````markdown
 ## Traceability Matrix
 
-| Requirement | Acceptance Criteria | Implementation Step | Verification Status |
+| Requirement | Acceptance Criteria | Story | Verification Status |
 |-------------|--------------------|--------------------|---------------------|
 | AUTH-01 | AC-01, AC-02 | — | Pending |
 | AUTH-02 | AC-03 | — | Pending |
@@ -479,7 +479,7 @@ Develop a comprehensive design document based on the requirements and research. 
 **Constraints (interactive mode only):**
 - You MUST review the design with the user and iterate based on feedback
 - You MUST explicitly ask the user if they are ready to proceed to implementation before moving to Step 8
-- You MUST NOT proceed to the implementation plan step without explicit user confirmation because this could skip important design refinement
+- You MUST NOT proceed to the story breakdown step without explicit user confirmation because this could skip important design refinement
 - You MUST offer to return to requirements clarification or research if gaps are identified during design
 
 **Constraints (auto mode only):**
@@ -520,24 +520,24 @@ Develop a comprehensive design document based on the requirements and research. 
 - In interactive mode: the ADR skill presents the proposed ADR to the user for review before writing
 - In auto mode: the ADR skill generates the ADR autonomously — all ADRs are committed as part of the design document commit-after-phase
 
-### 8. Develop Implementation Plan
+### 8. Develop Story Breakdown
 
-Create a structured implementation plan with a series of steps for implementing the design. Each step receives a sequential `STEP-NN` identifier.
+Create a structured story breakdown with a series of stories for implementing the design. Each story receives a sequential `STORY-NN` identifier.
 
 **Constraints (all modes):**
-- You MUST create an implementation plan at {epic_dir}/plan.md
+- You MUST create a story breakdown at {epic_dir}/plan.md
 - After completing this phase, you MUST commit `{epic_dir}/plan.md` and the updated `{epic_dir}/requirements.md` (traceability matrix) to version control (see Commit After Phase section)
-- You MUST include a checklist at the beginning of the plan.md file to track implementation progress
-- You MUST use the following specific instructions when creating the implementation plan:
+- You MUST include a checklist at the beginning of the plan.md file to track story progress
+- You MUST use the following specific instructions when creating the story breakdown:
   ```
-  Convert the design into a series of implementation steps that will build each component in a test-driven manner following agile best practices. Each step must result in a working, demoable increment of functionality. Prioritize best practices, incremental progress, and early testing, ensuring no big jumps in complexity at any stage. Make sure that each step builds on the previous steps, and ends with wiring things together. There should be no hanging or orphaned code that isn't integrated into a previous step.
+  Convert the design into a series of stories that will build each component in a test-driven manner following agile best practices. Each story must result in a working, demoable increment of functionality. Prioritize best practices, incremental progress, and early testing, ensuring no big jumps in complexity at any stage. Make sure that each story builds on the previous stories, and ends with wiring things together. There should be no hanging or orphaned code that isn't integrated into a previous story.
   ```
-- You MUST assign each step a sequential `STEP-NN` ID (STEP-01, STEP-02, etc.)
-- You MUST format the implementation plan as a numbered series of detailed steps, each prefixed with its STEP-NN ID
-- Each step in the plan MUST be written as a clear implementation objective
-- Each step MUST begin with "STEP-NN:" where NN is the zero-padded sequential number
-- You MUST write each step as a **story** — the format MUST be directly usable by the breakdown hat to create a GitHub story issue without transformation. Each step maps 1:1 to a story issue.
-- You MUST ensure each step includes:
+- You MUST assign each story a sequential `STORY-NN` ID (STORY-01, STORY-02, etc.)
+- You MUST format the story breakdown as a numbered series of detailed stories, each prefixed with its STORY-NN ID
+- Each story MUST be written as a clear implementation objective
+- Each story MUST begin with "STORY-NN:" where NN is the zero-padded sequential number
+- The format MUST be directly usable by the breakdown hat to create a GitHub story issue without transformation. Each STORY-NN maps 1:1 to a story issue.
+- You MUST ensure each story includes:
   - **Title** — a concise, issue-title-ready summary (e.g., "Add OAuth2 token refresh endpoint")
   - **Objective** — what this story delivers as a working increment
   - **Implementation Guidance** — general approach, not excessive detail (the design doc has the details)
@@ -546,28 +546,28 @@ Create a structured implementation plan with a series of steps for implementing 
   - **Demo** — explicit description of the working functionality that can be demonstrated after completing this story
   - **Requirements** — which `CATEGORY-NN` requirement(s) this story addresses
   - **Acceptance Criteria** — which `AC-NN` criterion/criteria this story satisfies
-  - **Dependencies** — which `STEP-NN` stories must be complete before this one can start (use `—` if none)
-- You MUST ensure each step results in working, demoable functionality that provides value
-- You MUST sequence steps so that core end-to-end functionality is available as early as possible
+  - **Dependencies** — which `STORY-NN` stories must be complete before this one can start (use `—` if none)
+- You MUST ensure each story results in working, demoable functionality that provides value
+- You MUST sequence stories so that core end-to-end functionality is available as early as possible
 - You MUST NOT include excessive implementation details that are already covered in the design document because this creates redundancy and potential inconsistencies
 - You MUST assume that all context documents (requirements, design, research) will be available during implementation
-- You MUST break down the implementation into a series of discrete, manageable steps
-- You MUST ensure each step builds incrementally on previous steps
-- You MUST structure each step so that tests are written before or alongside the implementation code
-- You MUST include test requirements as part of each step that introduces or modifies functionality, not as separate testing-only steps
-- You MUST NOT create steps that are solely dedicated to testing or "adding tests" for functionality implemented in previous steps because this violates test-driven development principles and allows untested code to accumulate
+- You MUST break down the implementation into a series of discrete, manageable stories
+- You MUST ensure each story builds incrementally on previous stories
+- You MUST structure each story so that tests are written before or alongside the implementation code
+- You MUST include test requirements as part of each story that introduces or modifies functionality, not as separate testing-only stories
+- You MUST NOT create stories that are solely dedicated to testing or "adding tests" for functionality implemented in previous stories because this violates test-driven development principles and allows untested code to accumulate
 - You MUST ensure the plan covers all aspects of the design
-- You SHOULD sequence steps to validate core functionality early
-- You MUST ensure the checklist items correspond directly to the steps in the implementation plan, using the STEP-NN IDs
-- After the plan is finalized, you MUST update the Traceability Matrix in requirements.md: fill in the **Acceptance Criteria** column with the `AC-NN` IDs from the design doc and the **Implementation Step** column with the `STEP-NN` IDs from the plan for each requirement
-- After the plan is finalized, you MUST also update the Traceability Matrix in design.md: fill in the **Implementation Step** column with the `STEP-NN` IDs from the plan for each requirement
+- You SHOULD sequence stories to validate core functionality early
+- You MUST ensure the checklist items correspond directly to the stories in the plan, using the STORY-NN IDs
+- After the plan is finalized, you MUST update the Traceability Matrix in requirements.md: fill in the **Acceptance Criteria** column with the `AC-NN` IDs from the design doc and the **Story** column with the `STORY-NN` IDs from the plan for each requirement
+- After the plan is finalized, you MUST also update the Traceability Matrix in design.md: fill in the **Story** column with the `STORY-NN` IDs from the plan for each requirement
 
 **Constraints (auto mode only):**
-- You MUST produce the complete implementation plan autonomously without user confirmation
+- You MUST produce the complete story breakdown autonomously without user confirmation
 
-**Adversarial Review (implementation plan):**
-- After producing and committing the implementation plan, you MUST run the adversarial review process (see Adversarial Review section)
-- Use the **Implementation Plan** perspectives: Scope, Dependency Correctness, Risk
+**Adversarial Review (story breakdown):**
+- After producing and committing the story breakdown, you MUST run the adversarial review process (see Adversarial Review section)
+- Use the **Story Breakdown** perspectives: Scope, Dependency Correctness, Risk
 - Apply the iteration protocol matching the current mode (interactive or auto)
 - If revisions are made, re-commit `{epic_dir}/plan.md` and updated `{epic_dir}/requirements.md` (traceability matrix) with message `docs(specs): revise plan after review for {epic_name}`
 - In interactive mode: complete the adversarial review before proceeding to Step 9
@@ -585,8 +585,8 @@ Provide a summary of all artifacts created and next steps.
   - Number of research topics (R-NN)
   - Number of acceptance criteria (AC-NN) in design.md
   - Number of decisions (D-NN) in design.md
-  - Number of implementation steps (STEP-NN) in plan.md
-- You MUST provide a brief overview of the design and implementation plan
+  - Number of stories (STORY-NN) in plan.md (story breakdown)
+- You MUST provide a brief overview of the design and story breakdown
 - You MUST suggest next steps for the user
 - You SHOULD highlight any areas that may need further refinement
 
@@ -616,11 +616,11 @@ After the PR is opened, you MUST offer to continue with story creation:
   2. Check if the spec PR is still open. If so, confirm with the user: "The spec PR needs to be merged before breakdown. Should I merge it now?"
   3. If confirmed, merge the PR using the `github-project` skill.
   4. Move the epic to `eng:lead:breakdown`.
-  5. Load the `code-task-generator` skill and chain into it for each story (each `STEP-NN` maps 1:1 to a story issue).
+  5. Load the `code-task-generator` skill and chain into it for each story (each `STORY-NN` maps 1:1 to a story issue).
   6. For each story, the code-task-generator follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
   7. You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator.
 - If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
-  - **All stories first:** Create all story issues from plan steps, then decompose each story into tasks
+  - **All stories first:** Create all story issues from the plan, then decompose each story into tasks
   - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
 
 **PR and Status Transition (auto mode only):**
@@ -641,7 +641,7 @@ The complete PDD pipeline produces the following artifacts:
 | `requirements.md` | {epic_dir}/ | CATEGORY-NN | Standalone requirements organized by category with traceability matrix |
 | `research/*.md` | {epic_dir}/research/ | R-NN | Research notes organized by topic |
 | `design.md` | {epic_dir}/ | AC-NN, D-NN | Design document referencing requirements by CATEGORY-NN, with traceability matrix |
-| `plan.md` | {epic_dir}/ | STEP-NN | Implementation steps, each referencing CATEGORY-NN and AC-NN |
+| `plan.md` | {epic_dir}/ | STORY-NN | Story breakdown, each story referencing CATEGORY-NN and AC-NN |
 | `summary.md` | {epic_dir}/ | — | Summary listing all artifacts and next steps |
 
 ## Examples
@@ -672,7 +672,7 @@ I notice you have several additional search tools available. Should I incorporat
 
 # Planning Summary
 
-I've completed the transformation of your rough idea into a detailed design with an implementation plan. Here's what was created:
+I've completed the transformation of your rough idea into a detailed design with an story breakdown. Here's what was created:
 
 ## Directory Structure
 - team/specs/my-project/template-feature/
@@ -684,7 +684,7 @@ I've completed the transformation of your rough idea into a detailed design with
     - R-02-storage-options.md
     - R-03-external-solutions.md
   - design.md (AC-01 through AC-08, D-01 through D-03)
-  - plan.md (STEP-01 through STEP-12, includes implementation checklist)
+  - plan.md (STORY-01 through STORY-12, story breakdown with checklist)
   - summary.md (this document)
 
 ## Key Design Elements
@@ -695,14 +695,14 @@ I've completed the transformation of your rough idea into a detailed design with
 - Document generation engine
 
 ## Implementation Approach
-The implementation plan breaks down the work into 12 incremental steps (STEP-01 through STEP-12), starting with core data models and building up to the complete feature set. Each step references the requirements (CATEGORY-NN) and acceptance criteria (AC-NN) it addresses.
+The story breakdown contains 12 stories (STORY-01 through STORY-12), starting with core data models and building up to the complete feature set. Each story references the requirements (CATEGORY-NN) and acceptance criteria (AC-NN) it addresses.
 
 ## Next Steps
 1. Review the detailed design document at team/specs/my-project/template-feature/design.md
-2. Check the implementation plan and checklist at team/specs/my-project/template-feature/plan.md
-3. Begin implementation following the checklist in the implementation plan
+2. Check the story breakdown and checklist at team/specs/my-project/template-feature/plan.md
+3. Begin implementation following the checklist in the story breakdown
 
-Would you like me to explain any specific part of the design or implementation plan in more detail?
+Would you like me to explain any specific part of the design or story breakdown in more detail?
 ```
 
 ## Troubleshooting

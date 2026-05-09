@@ -11,7 +11,7 @@ Output is stored in the team repo under `team/specs/<project>/` alongside the pa
 ## Parameters
 
 - **input** (required): Story description, file path, or PDD plan path. Can be a story issue body, a sentence/paragraph describing the work, or a path to a PDD plan.
-- **step_number** (optional): For PDD plans only — specific step to process. If not provided, automatically determines the next uncompleted step from the checklist.
+- **story_number** (optional): For PDD plans only — specific story to process. If not provided, automatically determines the next uncompleted story from the checklist.
 - **output_dir** (optional, default: `team/specs/<project>/<issue#>-<epic-slug>/tasks/<issue#>-<story-slug>/`): Directory where task files will be created. When invoked from a story with a parent epic, the default is derived from the project name, issue numbers, and slugs.
 - **project** (required): BotMinter project name (code repository, e.g., `botminter`, `ralph-orchestrator`). Determines the `<project>/` segment in output paths.
 - **epic_name** (optional): Epic name for organizing tasks. If processing a PDD plan, inferred from the plan path. Otherwise, generated from the description as a short kebab-case name.
@@ -58,13 +58,13 @@ Automatically determine whether input is a description or PDD plan.
 
 **Constraints:**
 - You MUST check if input is a file path that exists
-- If file exists, you MUST read it and check for PDD plan structure (checklist, numbered steps with `STEP-NN` IDs)
+- If file exists, you MUST read it and check for PDD plan structure (checklist, numbered stories with `STORY-NN` IDs)
 - If file contains PDD checklist format, you MUST set mode to "pdd"
 - If input is a story issue number, you MUST load the issue body from GitHub and set mode to "description"
 - You MUST ensure a GitHub story issue exists for this work item. If invoked with an existing issue number, use that issue. Otherwise, create a new story issue using the `github-project` skill. If the story has a parent epic, link it as a sub-issue. The issue number becomes `{issue#}` for the directory name.
 - If input is text or file without PDD structure, you MUST set mode to "description"
 - You MUST inform user which mode was detected (interactive) or log the detection (auto)
-- You MUST validate that PDD plans follow expected format with `STEP-NN` numbered steps
+- You MUST validate that PDD plans follow expected format with `STORY-NN` numbered stories
 
 ### 2. Analyze Input
 
@@ -72,7 +72,7 @@ Parse and understand the input content based on detected mode.
 
 **Constraints:**
 - For PDD mode: you MUST parse implementation plan and extract steps/checklist status
-- For PDD mode: you MUST determine target step based on step_number parameter or first uncompleted step
+- For PDD mode: you MUST determine target story based on story_number parameter or first uncompleted story
 - For PDD mode: you MUST locate the parent design artifacts (`requirements.md`, `design.md`) and extract `CATEGORY-NN` and `AC-NN` IDs relevant to the target step
 - For description mode: you MUST identify the core functionality being requested
 - You MUST extract any technical requirements, constraints, or preferences mentioned
@@ -143,7 +143,7 @@ Create task files, catalog README, and organize output.
 - When invoked from a PDD plan: `team/specs/<project>/<issue#>-<epic-slug>/tasks/<issue#>-<story-slug>/` where the issue numbers and slugs come from the story being decomposed
 - Fallback (no issue context): `team/specs/<project>/tasks/<issue#>-<slug>/` (a story issue is created first to obtain the issue number)
 
-**Folder naming:** Folders use `<issue#>-<story-slug>/` format (e.g., `42-add-oauth-endpoint/`), NOT `step{NN}/`. Since plan steps = stories, the folder name comes from the story issue, not the step number.
+**Folder naming:** Folders use `<issue#>-<story-slug>/` format (e.g., `42-add-oauth-endpoint/`). The folder name comes from the story issue number and slug.
 
 **Constraints:**
 - You MUST create `.code-task-NN.md` files within the output directory, named sequentially: `.code-task-01.md`, `.code-task-02.md`, etc.
@@ -232,7 +232,7 @@ Inform user about generated tasks and next steps.
 - You MUST report the externalization mode used and the results (issues created, story updated, or repo-only)
 
 **Constraints (interactive mode):**
-- For PDD mode: you MUST provide the step demo requirements for context
+- For PDD mode: you MUST provide the story demo requirements for context
 - For description mode: you MUST provide a brief summary of what was created
 
 **PR and Status Transition (interactive mode):**
@@ -318,7 +318,7 @@ Each code task file MUST follow this exact structure:
 ## Traceability
 - **Requirements**: [CATEGORY-NN, CATEGORY-NN]
 - **Acceptance Criteria**: [AC-NN, AC-NN]
-- **Parent Story**: [story reference or plan step]
+- **Parent Story**: [story reference or issue link]
 - **Design Doc**: [path to design.md]
 
 ## Metadata
@@ -422,14 +422,14 @@ Next steps: Tasks are ready for implementation by the developer hat.
 ### Example Input (PDD Mode)
 ```
 input: "team/specs/my-project/plan.md"
-step_number: 2
+story_number: 2
 ```
 
 ### Example Output (PDD Mode)
 ```
 Detected mode: pdd
 
-Generated code tasks for STEP-02: team/specs/my-project/15-my-epic/tasks/42-add-data-models/
+Generated code tasks for STORY-02: team/specs/my-project/15-my-epic/tasks/42-add-data-models/
 
 Created tasks:
 - .code-task-01.md — Create data models
