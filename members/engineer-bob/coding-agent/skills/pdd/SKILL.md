@@ -187,7 +187,8 @@ Set up a directory structure to organize all planning artifacts created during t
   - If only `rough-idea.md` exists → resume at Step 2 (process planning)
 - In interactive mode: you MUST inform the user which phases are being skipped and why
 - In auto mode: you MUST log the resumability detection in the first artifact produced
-- You MUST create the epic directory if it doesn't already exist
+- You MUST ensure a GitHub Epic issue exists for this work item. If the skill was invoked with an existing issue number (e.g., from a board work item), use that issue. Otherwise, create a new Epic issue using the `github-project` skill with a title derived from the rough idea and a body containing the rough idea text. The issue number becomes `{issue#}` for the directory name.
+- You MUST create the epic directory `team/specs/{project}/{issue#}-{epic_name}/` if it doesn't already exist
 - You MUST create the following files:
   - {epic_dir}/rough-idea.md (containing the provided rough idea)
   - {epic_dir}/idea-honing.md (for requirements clarification)
