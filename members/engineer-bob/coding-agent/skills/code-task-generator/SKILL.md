@@ -2,7 +2,7 @@
 
 ## Overview
 
-This skill generates structured code task files from stories or rough descriptions. It analyzes the input, determines the task breakdown, and creates properly formatted `.code-task-NN.md` files with full traceability back to requirements and acceptance criteria. For stories that originate from a PDD implementation plan, tasks carry `CATEGORY-NN` and `AC-NN` IDs from the parent design artifacts.
+This skill generates structured code task files from stories or rough descriptions. It analyzes the input, determines the task breakdown, and creates properly formatted `.code-task-NN.md` files with full traceability back to requirements and acceptance criteria. For stories that originate from a PDD story breakdown, tasks carry `CATEGORY-NN` and `AC-NN` IDs from the parent design artifacts.
 
 Tasks produced by this skill are implemented by the agent runtime (Ralph loops) — each `.code-task-NN.md` is picked up by a developer hat and executed in a TDD cycle. This skill handles decomposition only, not implementation.
 
@@ -71,9 +71,9 @@ Automatically determine whether input is a description or PDD plan.
 Parse and understand the input content based on detected mode.
 
 **Constraints:**
-- For PDD mode: you MUST parse implementation plan and extract steps/checklist status
+- For PDD mode: you MUST parse the story breakdown and extract stories/checklist status
 - For PDD mode: you MUST determine target story based on story_number parameter or first uncompleted story
-- For PDD mode: you MUST locate the parent design artifacts (`requirements.md`, `design.md`) and extract `CATEGORY-NN` and `AC-NN` IDs relevant to the target step
+- For PDD mode: you MUST locate the parent design artifacts (`requirements.md`, `design.md`) and extract `CATEGORY-NN` and `AC-NN` IDs relevant to the target story
 - For description mode: you MUST identify the core functionality being requested
 - You MUST extract any technical requirements, constraints, or preferences mentioned
 - You MUST determine the appropriate complexity level (Low/Medium/High)
@@ -84,8 +84,8 @@ Parse and understand the input content based on detected mode.
 Organize requirements and determine task breakdown based on mode.
 
 **Constraints:**
-- For PDD mode: you MUST extract the target step's title, description, demo requirements, and constraints
-- For PDD mode: you MUST preserve integration notes with previous steps
+- For PDD mode: you MUST extract the target story's title, description, demo requirements, and constraints
+- For PDD mode: you MUST preserve integration notes with previous stories
 - For PDD mode: you MUST identify which specific research documents (if any) are directly relevant to each task being created
 - For PDD mode: you MUST extract `CATEGORY-NN` requirement IDs and `AC-NN` acceptance criteria IDs from the parent story's design artifacts
 - For description mode: you MUST identify specific functional requirements from the description
@@ -421,7 +421,7 @@ Next steps: Tasks are ready for implementation by the developer hat.
 
 ### Example Input (PDD Mode)
 ```
-input: "team/specs/my-project/plan.md"
+input: "team/specs/my-project/15-my-epic/plan.md"
 story_number: 2
 ```
 
@@ -439,7 +439,7 @@ Created tasks:
 
 Externalization: default (3 GitHub issues created with agent-internal label)
 
-Step demo: Working data models with validation that can create, validate, and serialize/deserialize data objects
+Story demo: Working data models with validation that can create, validate, and serialize/deserialize data objects
 
 Next steps: Tasks are ready for implementation. Would you like to decompose the next story?
 ```
@@ -477,11 +477,11 @@ If the plan doesn't follow expected PDD format:
 - You SHOULD suggest running the PDD skill (`bm meetings planning`) to generate a proper plan
 - You SHOULD attempt to extract what information is available
 
-### No Uncompleted Steps (PDD Mode)
-If all steps in the checklist are marked complete:
-- You SHOULD inform the user that all steps appear to be complete
-- You SHOULD ask if they want to generate a task for a specific step anyway (interactive)
-- You SHOULD suggest reviewing the implementation plan for potential new steps
+### No Uncompleted Stories (PDD Mode)
+If all stories in the checklist are marked complete:
+- You SHOULD inform the user that all stories appear to be complete
+- You SHOULD ask if they want to generate tasks for a specific story anyway (interactive)
+- You SHOULD suggest reviewing the story breakdown for potential new stories
 
 ### Existing Task Files Found
 If the output directory already contains task files from a previous run:
