@@ -595,21 +595,21 @@ sequenceDiagram
 
 | Requirement | Acceptance Criteria | Implementation Step | Verification Status |
 |-------------|--------------------|--------------------|---------------------|
-| TMUX-01 | AC-03 | — | Pending |
-| TMUX-02 | AC-01 | — | Pending |
-| TMUX-03 | AC-02 | — | Pending |
-| TMUX-04 | AC-03 | — | Pending |
-| SESS-01 | AC-03 | — | Pending |
-| SESS-02 | AC-03 | — | Pending |
-| SESS-03 | AC-04 | — | Pending |
-| SESS-04 | AC-05 | — | Pending |
-| LIFE-01 | AC-06 | — | Pending |
-| LIFE-02 | AC-07 | — | Pending |
-| LIFE-03 | AC-08 | — | Pending |
-| LIFE-04 | AC-09 | — | Pending |
-| UX-01 | AC-10 | — | Pending |
-| UX-02 | AC-11 | — | Pending |
-| UX-03 | AC-11 | — | Pending |
-| BRAND-01 | AC-12 | — | Pending |
-| BRAND-02 | AC-13 | — | Pending |
-| BRAND-03 | AC-12 | — | Pending |
+| TMUX-01 | AC-03 | STEP-01, STEP-03 | Pending |
+| TMUX-02 | AC-01 | STEP-05 | Pending |
+| TMUX-03 | AC-02 | STEP-01 | Pending |
+| TMUX-04 | AC-03 | STEP-01, STEP-04 | Pending |
+| SESS-01 | AC-03 | STEP-04 | Pending |
+| SESS-02 | AC-03 | STEP-02, STEP-03 | Pending |
+| SESS-03 | AC-04 | STEP-03 | Pending |
+| SESS-04 | AC-05 | STEP-04 | Pending |
+| LIFE-01 | AC-06 | STEP-04 | Pending |
+| LIFE-02 | AC-07 | STEP-04 | Pending |
+| LIFE-03 | AC-08 | STEP-02, STEP-04 | Pending |
+| LIFE-04 | AC-09 | STEP-04 | Pending |
+| UX-01 | AC-10 | STEP-05 | Pending |
+| UX-02 | AC-11 | STEP-05 | Pending |
+| UX-03 | AC-11 | STEP-05 | Pending |
+| BRAND-01 | AC-12 | STEP-01, STEP-05 | Pending |
+| BRAND-02 | AC-13 | STEP-01, STEP-05 | Pending |
+| BRAND-03 | AC-12 | STEP-01, STEP-05 | Pending |
