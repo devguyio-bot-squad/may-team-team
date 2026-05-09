@@ -205,11 +205,7 @@ if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
 fi
 
 # Set initial status based on kind
-if [ "$KIND" = "bug" ]; then
-  INITIAL_STATUS="bug:investigate"
-else
-  INITIAL_STATUS="po:triage"
-fi
+INITIAL_STATUS="human:po:triage"
 
 OPTION_ID=$(echo "$FIELD_DATA" | jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="'"$INITIAL_STATUS"'") | .id')
 if [ -z "$OPTION_ID" ] || [ "$OPTION_ID" = "null" ]; then
