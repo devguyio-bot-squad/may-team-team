@@ -14,7 +14,7 @@ Output is stored in the team repo under `team/specs/<project>/` alongside the pa
 - **step_number** (optional): For PDD plans only — specific step to process. If not provided, automatically determines the next uncompleted step from the checklist.
 - **output_dir** (optional, default: `team/specs/<project>/<issue#>-<epic-slug>/tasks/<issue#>-<story-slug>/`): Directory where task files will be created. When invoked from a story with a parent epic, the default is derived from the project name, issue numbers, and slugs.
 - **project** (required): BotMinter project name (code repository, e.g., `botminter`, `ralph-orchestrator`). Determines the `<project>/` segment in output paths.
-- **epic_name** (optional): Epic name for organizing tasks. If processing a PDD plan, inferred from the plan path. Otherwise, generated from the description with a YYYY-MM-DD date prefix.
+- **epic_name** (optional): Epic name for organizing tasks. If processing a PDD plan, inferred from the plan path. Otherwise, generated from the description as a short kebab-case name.
 
 **Constraints for parameter acquisition:**
 - You MUST ask for all required parameters upfront in a single prompt rather than one at a time
@@ -61,6 +61,7 @@ Automatically determine whether input is a description or PDD plan.
 - If file exists, you MUST read it and check for PDD plan structure (checklist, numbered steps with `STEP-NN` IDs)
 - If file contains PDD checklist format, you MUST set mode to "pdd"
 - If input is a story issue number, you MUST load the issue body from GitHub and set mode to "description"
+- You MUST ensure a GitHub story issue exists for this work item. If invoked with an existing issue number, use that issue. Otherwise, create a new story issue using the `github-project` skill. If the story has a parent epic, link it as a sub-issue. The issue number becomes `{issue#}` for the directory name.
 - If input is text or file without PDD structure, you MUST set mode to "description"
 - You MUST inform user which mode was detected (interactive) or log the detection (auto)
 - You MUST validate that PDD plans follow expected format with `STEP-NN` numbered steps
@@ -140,7 +141,7 @@ Create task files, catalog README, and organize output.
 - When invoked from a story with a parent epic: `team/specs/<project>/<issue#>-<epic-slug>/tasks/<issue#>-<story-slug>/`
 - When invoked from a standalone story (no parent epic): `team/specs/<project>/tasks/<issue#>-<story-slug>/`
 - When invoked from a PDD plan: `team/specs/<project>/<issue#>-<epic-slug>/tasks/<issue#>-<story-slug>/` where the issue numbers and slugs come from the story being decomposed
-- Fallback (no issue context): `team/specs/<project>/tasks/{epic_name}/`
+- Fallback (no issue context): `team/specs/<project>/tasks/<issue#>-<slug>/` (a story issue is created first to obtain the issue number)
 
 **Folder naming:** Folders use `<issue#>-<story-slug>/` format (e.g., `42-add-oauth-endpoint/`), NOT `step{NN}/`. Since plan steps = stories, the folder name comes from the story issue, not the step number.
 
@@ -190,8 +191,11 @@ Create task files, catalog README, and organize output.
 - Every requirement ID and AC ID referenced in the parent story MUST appear in at least one task's Traceability section
 - The catalog README MUST aggregate all traceability IDs for quick reference
 
+**Index update:**
+- You MUST update `team/specs/index.md` with an entry for this story. Create the file if it doesn't exist. Each entry should include the issue number, title, parent epic reference, project, and link to the task directory.
+
 **Commit after generation:**
-- After all task files and the catalog README are generated, you MUST commit them to version control
+- After all task files, the catalog README, and index update are generated, you MUST commit them to version control
 - Commit message pattern: `docs(specs): generate tasks for [story reference]`
 - On failure and retry, the skill MUST detect existing task files and resume — do not overwrite existing completed tasks
 
@@ -404,7 +408,7 @@ input: "I need a function that validates email addresses and returns detailed er
 ```
 Detected mode: description
 
-Generated code tasks: team/specs/my-project/tasks/2026-05-08-email-validator/
+Generated code tasks: team/specs/my-project/tasks/23-email-validator/
 
 Created tasks:
 - .code-task-01.md — Create email validator function
