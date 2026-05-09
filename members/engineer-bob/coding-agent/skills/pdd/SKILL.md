@@ -21,7 +21,9 @@ All catalogable entities produced by this skill receive stable IDs for cross-ref
 - **project** (required): Which BotMinter project (code repository) this epic is for. Corresponds to a directory under `projects/` in the workspace
 - **epic_name** (optional): A short, descriptive name for the epic. If not provided, will be generated from the rough idea
 
-The artifact directory (`{epic_dir}`) is derived, not user-specified: `team/specs/{project}/{epic_name}/`
+The artifact directory (`{epic_dir}`) is derived, not user-specified: `team/specs/{project}/{issue#}-{epic_name}/`
+
+The `{issue#}` is the GitHub Epic issue number, created in Step 1.
 
 **Constraints for parameter acquisition:**
 - You MUST ask for all required parameters upfront in a single prompt rather than one at a time
@@ -32,7 +34,7 @@ The artifact directory (`{epic_dir}`) is derived, not user-specified: `team/spec
   - Other methods: You SHOULD be open to other ways the user might want to provide the idea
 - You MUST use appropriate tools to access content based on the input method
 - You MUST confirm successful acquisition of all parameters before proceeding
-- If epic_name is not provided, You MUST generate a short kebab-case name from the rough idea, prefixed with the current date in YYYY-MM-DD format (e.g., "2026-01-30-template-manager", "2026-01-30-auth-system")
+- If epic_name is not provided, You MUST generate a short kebab-case name from the rough idea (e.g., "template-manager", "auth-system")
 - You SHOULD save the acquired rough idea to a consistent location for use in subsequent steps
 - You MUST NOT overwrite the existing epic directory because this could destroy previous work and cause data loss
 - You MUST ask the operator for a different epic_name if the generated default directory already exists and has contents from a previous iteration
@@ -72,7 +74,7 @@ This skill supports crash recovery and resumability. At the start of each run, c
 
 | Phase | Step | Completion Signal |
 |-------|------|-------------------|
-| Planning setup | 1 | `{epic_dir}/` directory exists with `rough-idea.md` |
+| Planning setup | 1 | `{epic_dir}/` directory exists with `rough-idea.md` containing `epic_issue:` frontmatter |
 | Idea-honing | 3 | `{epic_dir}/idea-honing.md` has Q-NN entries with answers |
 | Research | 4 | `{epic_dir}/research/` directory contains R-NN files |
 | Requirements | 6 | `{epic_dir}/requirements.md` exists with CATEGORY-NN entries |
@@ -187,13 +189,15 @@ Set up a directory structure to organize all planning artifacts created during t
   - If only `rough-idea.md` exists → resume at Step 2 (process planning)
 - In interactive mode: you MUST inform the user which phases are being skipped and why
 - In auto mode: you MUST log the resumability detection in the first artifact produced
-- You MUST create the epic directory if it doesn't already exist
+- You MUST first create a GitHub Epic issue for this work item using the `github-project` skill. The title should be derived from the rough idea and the body should contain the rough idea text. The returned issue number becomes `{issue#}` for the directory name.
+- You MUST create the epic directory `team/specs/{project}/{issue#}-{epic_name}/` if it doesn't already exist
 - You MUST create the following files:
-  - {epic_dir}/rough-idea.md (containing the provided rough idea)
+  - {epic_dir}/rough-idea.md (containing the provided rough idea, with frontmatter field `epic_issue: <number>`)
   - {epic_dir}/idea-honing.md (for requirements clarification)
 - You MUST create the following subdirectories:
   - {epic_dir}/research/ (directory for research notes)
-- In interactive mode: you MUST notify the user when the structure has been created
+- You MUST update `team/specs/index.md` with a new entry for this epic. Create the file if it doesn't exist. Each entry should include the issue number, title, project, and link to the spec directory.
+- In interactive mode: you MUST notify the user when the structure has been created and the epic issue has been filed
 - You MUST inform the user that all planning artifacts will remain available throughout the process
 - You MUST explain that this will ensure all planning artifacts remain in context throughout the process
 
@@ -661,7 +665,7 @@ I notice you have several additional search tools available. Should I incorporat
 I've completed the transformation of your rough idea into a detailed design with an implementation plan. Here's what was created:
 
 ## Directory Structure
-- team/specs/my-project/template-feature/
+- team/specs/my-project/15-template-feature/
   - rough-idea.md (your initial concept)
   - idea-honing.md (Q-01 through Q-12 — our requirements clarification)
   - requirements.md (AUTH-01 through AUTH-03, TMPL-01 through TMPL-05, SHARE-01 through SHARE-02)

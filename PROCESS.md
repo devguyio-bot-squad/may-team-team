@@ -324,17 +324,18 @@ Planning artifacts are stored in the team repo under `specs/`:
 ```
 specs/
   index.md                           # Catalog of all work items and their artifacts
-  <issue#>-<slug>/                   # Per-work-item directory
-    requirements.md                  # Requirements (epics)
-    design.md                        # Design document (epics)
-    plan.md                          # Implementation plan (epics)
-    tasks/                           # Code task files (stories)
-      .code-task-01.md
-      .code-task-02.md
-      README.md                      # Task catalog
+  <project>/                         # Per-project directory
+    <issue#>-<slug>/                 # Per-work-item directory
+      requirements.md                # Requirements (epics)
+      design.md                      # Design document (epics)
+      plan.md                        # Implementation plan (epics)
+      tasks/                         # Code task files (stories)
+        .code-task-01.md
+        .code-task-02.md
+        README.md                    # Task catalog
 ```
 
-The `specs/index.md` file serves as a catalog of all work items with pointers to their artifacts.
+The `specs/index.md` file serves as a catalog of all work items with pointers to their artifacts. Artifacts are grouped by project, then by work item. The `<issue#>` prefix ties the directory to its GitHub issue.
 
 ---
 
