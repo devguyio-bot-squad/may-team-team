@@ -447,6 +447,12 @@ Develop a comprehensive design document based on the requirements and research. 
   - Acceptance Criteria (each tagged with `AC-NN` ID — AC-01, AC-02, etc.)
   - Design Decisions (each tagged with `D-NN` ID — D-01, D-02, etc.)
   - Testing Strategy
+  - Security Considerations (threat model, auth boundaries, input validation, data exposure risks)
+  - Observability (logging, monitoring, metrics, alerting, debugging approach)
+  - Performance (latency, throughput, resource usage, scalability considerations)
+  - Migration & Compatibility (backward compatibility, data migration, rollout strategy)
+  - Impact on Existing System (what changes, what breaks, blast radius, changed signatures)
+  - Documentation Impact (user-facing docs, API docs, changelog entries needed)
   - Appendices (Technology Choices, Research Findings, Alternative Approaches)
   - Traceability Matrix (LAST section — maps requirements to acceptance criteria and stories)
 - You MUST assign each acceptance criterion a sequential `AC-NN` ID (AC-01, AC-02, ...). Acceptance criteria MUST be in Given-When-Then (GWT) format and reference the `CATEGORY-NN` requirement(s) they verify.
