@@ -2,7 +2,7 @@
 
 ## Overview
 
-This skill guides you through the process of transforming a rough idea into a detailed design document with an story breakdown and todo list. It follows the Prompt-Driven Development methodology to systematically refine your idea, conduct necessary research, create a comprehensive design, and develop an actionable story breakdown. The process is designed to be iterative, allowing movement between requirements clarification and research as needed.
+This skill guides you through the process of transforming a rough idea into a detailed design document with a story breakdown and todo list. It follows the Prompt-Driven Development methodology to systematically refine your idea, conduct necessary research, create a comprehensive design, and develop an actionable story breakdown. The process is designed to be iterative, allowing movement between requirements clarification and research as needed.
 
 All catalogable entities produced by this skill receive stable IDs for cross-referencing across the pipeline:
 
@@ -165,7 +165,7 @@ Determine which BotMinter project (code repository) this epic belongs to.
 - If only one project exists, auto-select it and inform the operator: "Auto-selected project `<name>` (only project in workspace)"
 - If multiple projects exist, present the list and ask the operator which project this epic is for
 - You MUST confirm the selected project before proceeding
-- You MUST store the selected project name for use in constructing `{epic_dir}` = `team/specs/{project}/{epic_name}/`
+- You MUST store the selected project name for use in constructing `{epic_dir}` = `team/specs/{project}/{issue#}-{epic_name}/`
 
 **Constraints (auto mode):**
 - You MUST derive the project from the issue's `project/<name>` label, or from context in the epic body
@@ -187,7 +187,7 @@ Set up a directory structure to organize all planning artifacts created during t
   - If only `rough-idea.md` exists → resume at Step 2 (process planning)
 - In interactive mode: you MUST inform the user which phases are being skipped and why
 - In auto mode: you MUST log the resumability detection in the first artifact produced
-- You MUST ensure a GitHub Epic issue exists for this work item. If the skill was invoked with an existing issue number (e.g., from a board work item), use that issue. Otherwise, create a new Epic issue using the `github-project` skill with a title derived from the rough idea and a body containing the rough idea text. The issue number becomes `{issue#}` for the directory name.
+- You MUST ensure a GitHub Epic issue exists for this work item. If the skill was invoked with an existing issue number (e.g., from a board work item), use that issue. Otherwise, create a new Epic issue using the `github-project` skill with a title derived from the rough idea and a body containing the rough idea text. The issue's initial status MUST be set to `human:po:triage`. The issue number becomes `{issue#}` for the directory name.
 - You MUST create the epic directory `team/specs/{project}/{issue#}-{epic_name}/` if it doesn't already exist
 - You MUST create the following files:
   - {epic_dir}/rough-idea.md (containing the provided rough idea)
@@ -609,7 +609,7 @@ After presenting the summary, you MUST:
 
 After the PR is opened, you MUST offer to continue with story creation:
 
-- Ask the user: "Would you like to proceed with story breakdown now, or stop here and review the PR first?"
+- Ask the user: "Would you like to proceed with creating story issues and decomposing tasks now, or stop here and review the PR first?"
 - If the user wants to **stop here**: end the skill. The user will review and merge the PR externally. The board scanner picks up the approved epic at `eng:lead:breakdown`.
 - If the user wants to **continue in this session**:
   1. The user reviews the plan during the conversation. When they approve:
@@ -672,7 +672,7 @@ I notice you have several additional search tools available. Should I incorporat
 
 # Planning Summary
 
-I've completed the transformation of your rough idea into a detailed design with an story breakdown. Here's what was created:
+I've completed the transformation of your rough idea into a detailed design with a story breakdown. Here's what was created:
 
 ## Directory Structure
 - team/specs/my-project/template-feature/
@@ -698,8 +698,8 @@ I've completed the transformation of your rough idea into a detailed design with
 The story breakdown contains 12 stories (STORY-01 through STORY-12), starting with core data models and building up to the complete feature set. Each story references the requirements (CATEGORY-NN) and acceptance criteria (AC-NN) it addresses.
 
 ## Next Steps
-1. Review the detailed design document at team/specs/my-project/template-feature/design.md
-2. Check the story breakdown and checklist at team/specs/my-project/template-feature/plan.md
+1. Review the detailed design document at team/specs/my-project/15-template-feature/design.md
+2. Check the story breakdown and checklist at team/specs/my-project/15-template-feature/plan.md
 3. Begin implementation following the checklist in the story breakdown
 
 Would you like me to explain any specific part of the design or story breakdown in more detail?

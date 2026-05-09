@@ -38,7 +38,7 @@ Both gates can be auto-advanced with `plan:auto` and `accept:auto` labels respec
 
 | Scope | Planning Artifacts | Planning Skill |
 |-------|-------------------|----------------|
-| Epic | requirements.md, design.md, plan.md (steps = stories) | PDD |
+| Epic | requirements.md, design.md, plan.md (stories) | PDD |
 | Story | .code-task-NN.md files + catalog README | code-task-generator |
 | Task | None — task IS the unit of work | Agent runtime |
 | Bug | Investigation notes → linked Story | QE investigation |
@@ -148,7 +148,7 @@ The epic lifecycle passes through planning, human review, breakdown, monitoring,
 | `human:po:backlog` | PO (human) | Accepted, prioritized, awaiting activation |
 | `eng:lead:plan` | lead | Creating planning artifacts autonomously (PDD pipeline) |
 | `human:po:plan-review` | PO (human) | Planning artifacts awaiting human review (PR or issue comment) |
-| `eng:lead:breakdown` | lead | Creating story issues from plan steps |
+| `eng:lead:breakdown` | lead | Creating story issues from the story breakdown |
 | `eng:lead:monitor` | lead | Monitoring story execution, advances when all stories done |
 | `human:po:accept` | PO (human) | Epic awaiting human acceptance |
 | `done` | -- | Epic complete |
@@ -337,14 +337,15 @@ Planning artifacts are stored in the team repo under `specs/`:
 ```
 specs/
   index.md                           # Catalog of all work items and their artifacts
-  <issue#>-<slug>/                   # Per-work-item directory
-    requirements.md                  # Requirements (epics)
-    design.md                        # Design document (epics)
-    plan.md                          # Implementation plan (epics)
-    tasks/                           # Code task files (stories)
-      .code-task-01.md
-      .code-task-02.md
-      README.md                      # Task catalog
+  <project>/                         # Per-project directory
+    <issue#>-<slug>/                 # Per-work-item directory
+      requirements.md                # Requirements (epics)
+      design.md                      # Design document (epics)
+      plan.md                        # Story breakdown (epics)
+      tasks/                         # Code task files (stories)
+        .code-task-01.md
+        .code-task-02.md
+        README.md                    # Task catalog
 ```
 
 The `specs/index.md` file serves as a catalog of all work items with pointers to their artifacts.
