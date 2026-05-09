@@ -600,25 +600,22 @@ Provide a summary of all artifacts created and next steps.
 - You MUST write the summary to `{epic_dir}/summary.md` without presenting it conversationally
 - You MUST provide a brief completion notice documenting the total artifact counts and any areas flagged for human review
 
-**Skill Chaining (interactive mode only):**
+**PR and Status Transition (interactive mode only):**
 
-After presenting the summary, you MUST offer downstream actions based on the completed plan:
+After presenting the summary, you MUST:
 
-- You MUST ask the user whether to:
-  1. **Create story issues** on the board from the plan steps (each `STEP-NN` maps 1:1 to a story issue)
-  2. **Chain into code-task-generator** for task decomposition of one or more stories
-  3. **Stop here** — the user will handle story creation and decomposition manually or via other workflows
-- If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
-  - **All stories first:** Create all story issues from plan steps, then decompose each story into tasks
-  - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
-- You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator
-- You MUST NOT auto-chain without explicit user confirmation
+1. **Open a PR** on the team repo with the spec artifacts, linked to the epic issue. The PR title should reference the epic (e.g., `[#1] Planning: Tmux agent sessions for observability`). The PR body should summarize the artifacts produced and link to them.
+2. **Move the epic issue** to `human:po:plan-review` using the `status-workflow` skill.
+3. **Inform the user** that the PR is open and the epic is in plan-review. Merging the PR = plan approval.
 
-**Skill Chaining (auto mode only):**
+You MUST NOT offer to create stories or chain into code-task-generator — that happens at `eng:lead:breakdown` after plan approval.
 
-- You MUST NOT chain into code-task-generator or create story issues — planning is complete
-- Ralph hat transitions handle downstream work (breakdown hat creates stories, developer hats decompose and implement)
-- You MUST note in the summary that story creation and task decomposition are deferred to downstream hats
+**PR and Status Transition (auto mode only):**
+
+- You MUST NOT open a PR — the specs are committed directly to the team repo
+- You MUST move the epic issue to `human:po:plan-review` using the `status-workflow` skill
+- You MUST post a summary comment on the epic issue with links to the spec artifacts
+- You MUST NOT chain into code-task-generator or create story issues — that happens at `eng:lead:breakdown` after plan approval
 
 ## Artifact Summary
 
