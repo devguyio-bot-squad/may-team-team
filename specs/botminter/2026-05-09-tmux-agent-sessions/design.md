@@ -176,7 +176,7 @@ The `TmuxSession` is passed into `launch_ralph()` and `launch_brain()` as a para
 
 **Security note:** The `-e` flag passes env vars via tmux's internal mechanism, not through the shell. This prevents secrets from appearing in `#{pane_start_command}` or in `ps` output. The command arguments are passed as a list (not a shell string), matching the current `Command::new()` pattern in `launch_ralph()`/`launch_brain()`.
 
-The existing brain stderr log file redirect (`stderr(Stdio::from(log_file))`) is removed — tmux panes capture all stdout and stderr natively, satisfying SESS-03.
+Brain stderr continues to be tee'd to `brain-stderr.log` as a secondary diagnostic capture, providing a persistent log even after the tmux session is destroyed. The command run inside the tmux window sends stderr both to the pane (visible to operator) and to the log file (persistent artifact). This satisfies SESS-03 (stderr visible in pane) while retaining the existing diagnostic artifact.
 
 **Signature changes:**
 
@@ -498,7 +498,7 @@ Per ADR-0009 and project CLAUDE.md, exploratory tests on `bm-test-user@localhost
 | Function | Change |
 |----------|--------|
 | `launch_ralph()` | Gains `tmux: &TmuxSession` parameter. No longer spawns `Command::new("ralph")` directly — delegates to `tmux.create_window()`. |
-| `launch_brain()` | Gains `tmux: &TmuxSession` parameter. Brain stderr log file redirect removed — tmux pane captures stderr natively. |
+| `launch_brain()` | Gains `tmux: &TmuxSession` parameter. Brain stderr continues to be tee'd to `brain-stderr.log` alongside tmux pane output. |
 | `start_local_members()` | Gains tmux session setup at the top (prerequisites check, session create/destroy). Passes `&tmux` to launch functions. Adds dead-window cleanup before each member launch. |
 | `LinuxLocalFormation::shell()` | Changes from returning an error to attaching to the tmux session. |
 | `LinuxLocalFormation::check_prerequisites()` | Adds tmux availability and version check. |
@@ -596,20 +596,20 @@ sequenceDiagram
 | Requirement | Acceptance Criteria | Implementation Step | Verification Status |
 |-------------|--------------------|--------------------|---------------------|
 | TMUX-01 | AC-03 | STEP-01, STEP-03 | Pending |
-| TMUX-02 | AC-01 | STEP-05 | Pending |
+| TMUX-02 | AC-01 | STEP-03, STEP-04 | Pending |
 | TMUX-03 | AC-02 | STEP-01 | Pending |
-| TMUX-04 | AC-03 | STEP-01, STEP-04 | Pending |
-| SESS-01 | AC-03 | STEP-04 | Pending |
+| TMUX-04 | AC-03 | STEP-01, STEP-03 | Pending |
+| SESS-01 | AC-03 | STEP-03 | Pending |
 | SESS-02 | AC-03 | STEP-02, STEP-03 | Pending |
 | SESS-03 | AC-04 | STEP-03 | Pending |
-| SESS-04 | AC-05 | STEP-04 | Pending |
-| LIFE-01 | AC-06 | STEP-04 | Pending |
-| LIFE-02 | AC-07 | STEP-04 | Pending |
-| LIFE-03 | AC-08 | STEP-02, STEP-04 | Pending |
-| LIFE-04 | AC-09 | STEP-04 | Pending |
-| UX-01 | AC-10 | STEP-05 | Pending |
-| UX-02 | AC-11 | STEP-05 | Pending |
-| UX-03 | AC-11 | STEP-05 | Pending |
-| BRAND-01 | AC-12 | STEP-01, STEP-05 | Pending |
-| BRAND-02 | AC-13 | STEP-01, STEP-05 | Pending |
-| BRAND-03 | AC-12 | STEP-01, STEP-05 | Pending |
+| SESS-04 | AC-05 | STEP-03 | Pending |
+| LIFE-01 | AC-06 | STEP-03 | Pending |
+| LIFE-02 | AC-07 | STEP-03 | Pending |
+| LIFE-03 | AC-08 | STEP-02, STEP-03 | Pending |
+| LIFE-04 | AC-09 | STEP-03 | Pending |
+| UX-01 | AC-10 | STEP-04 | Pending |
+| UX-02 | AC-11 | STEP-04 | Pending |
+| UX-03 | AC-11 | STEP-04 | Pending |
+| BRAND-01 | AC-12 | STEP-01, STEP-04 | Pending |
+| BRAND-02 | AC-13 | STEP-01, STEP-04 | Pending |
+| BRAND-03 | AC-12 | STEP-01, STEP-04 | Pending |
