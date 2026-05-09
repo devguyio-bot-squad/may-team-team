@@ -108,21 +108,29 @@ After completing each major phase, you MUST commit the artifacts in `{epic_dir}/
 
 ## Adversarial Review
 
-After each major planning artifact is produced (design document, story breakdown), you MUST spawn 3 adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer examines the artifact from a distinct perspective tailored to the artifact type. The reviewers are internal to this skill — they are not separate hats.
+After each major planning artifact is produced (design document, story breakdown), you MUST spawn adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer adopts a distinct professional persona and reviews the artifact holistically from that viewpoint — they apply their full professional judgment, not a narrow topic checklist. The reviewers are internal to this skill — they are not separate hats.
 
-**Perspectives by artifact type:**
+**Design Document personas (3 reviewers):**
 
-| Artifact | Perspective 1 | Perspective 2 | Perspective 3 |
-|----------|--------------|--------------|--------------|
-| **Design Document** (`design.md`) | **Architecture** — Is the design sound? Separation of concerns? Scalability? Does it handle the requirements? | **Security** — Vulnerabilities? Input validation? Auth boundaries? Data exposure? | **Maintainability** — Complexity? Coupling? Will this be understandable in 6 months? Extension points? |
-| **Story Breakdown** (`plan.md`) | **Scope** — Are stories appropriately sized? Any story too large to be demoable? Any story too trivial? | **Dependency Correctness** — Are story dependencies right? Missing prerequisites? Orphaned stories? Can this actually be built in this order? | **Risk** — What could go wrong at each story? Blast radius? Rollback strategy? Integration risks? |
+| Persona | Review lens |
+|---------|-------------|
+| **Staff Engineer** | Reviews as a senior IC who will own the technical quality of this system long-term. Applies holistic judgment across architecture, security, maintainability, performance, and production-readiness. Connects decisions to their downstream implications — a design choice that's architecturally clean but operationally fragile gets flagged as one issue, not missed because it falls between two isolated topic reviews. |
+| **UX Engineer** | Acts as the voice of every user persona who will interact with this feature — end users, operators, admins. Evaluates whether users can find it, learn it, use it, and recover from mistakes. Catches documentation gaps (missing sections, thin content, incomplete guides), poor error messages, CLI ergonomics issues, onboarding friction, and discoverability problems. The test: "when this ships, will users succeed without hand-holding?" |
+| **QE Engineer** | Reviews as the engineer who will verify this feature works end-to-end. Evaluates whether the design is testable, acceptance criteria are verifiable in Given-When-Then form, edge cases are covered, the test strategy catches regressions, and observability supports debugging failures. Catches untestable requirements, missing test categories, and gaps between ACs and actual verification. |
+
+**Story Breakdown personas (2 reviewers):**
+
+| Persona | Review lens |
+|---------|-------------|
+| **Staff Engineer** | Reviews as a tech lead who will guide engineers through this implementation. Evaluates whether stories are right-sized for a single PR, dependencies are correctly ordered, technical risks are identified with mitigations, the build sequence avoids orphaned code, and each story compiles and integrates with previous work. |
+| **Delivery/PM** | Reviews as someone accountable for delivering this feature with visible progress. Evaluates whether each story delivers demoable value, the ordering enables early stakeholder feedback, scope is controlled (no gold-plating), stories don't bunch all risk at the end, and the breakdown supports predictable velocity. |
 
 **Review feedback format:**
 
 Each reviewer MUST produce structured feedback in this format:
 
 ````markdown
-### Review: [Perspective Name]
+### Review: [Persona]
 
 **Verdict:** PASS | REVISE | BLOCK
 
@@ -136,18 +144,21 @@ Each reviewer MUST produce structured feedback in this format:
 **Strengths:** [what's done well — retained across revisions]
 ````
 
+**Overlap guidance:** Persona-based reviewers may flag the same concern from different angles. This is expected and is a signal of severity — if both the Staff Engineer and QE flag weak acceptance criteria, that issue is more important than one flagged by a single reviewer. In auto mode, overlapping issues are addressed once (not duplicated); in interactive mode, all feedback is presented and the human decides.
+
 **Iteration protocol:**
 
 | Mode | Behavior |
 |------|----------|
-| **Interactive** | Present consolidated feedback from all 3 reviewers to the human. The human selectively addresses issues (e.g., "fix #1 and #3, skip #2"). Revise only the items the human chooses to address. The human decides when the artifact is ready. |
+| **Interactive** | Present consolidated feedback from all reviewers to the human. The human selectively addresses issues (e.g., "fix #1 and #3, skip #2"). Revise only the items the human chooses to address. The human decides when the artifact is ready. |
 | **Auto** | Iterate up to 3 rounds without human input. Round 1: initial review — all issues surfaced. Round 2: targeted revision — address only blocker and major issues, re-review changed sections plus regression check. Round 3: final pass — if blockers remain, emit rejection event with remaining issues listed. |
 
 **Constraints:**
-- You MUST spawn exactly 3 reviewer sub-agents in parallel for each reviewed artifact
-- Each sub-agent MUST use a distinct perspective from the perspective table above, matched to the artifact type being reviewed
+- You MUST spawn the number of reviewer sub-agents matching the artifact type (3 for design document, 2 for story breakdown)
+- Each sub-agent MUST adopt a distinct persona from the persona tables above, matched to the artifact type being reviewed
+- Persona-based reviewers review holistically — do NOT constrain them to a narrow topic checklist. The persona description defines their lens, not their scope.
 - Sub-agents MUST produce feedback in the structured format specified above
-- You MUST NOT skip the adversarial review for any artifact listed in the perspective table
+- You MUST NOT skip the adversarial review for any artifact listed in the persona tables
 - In interactive mode: you MUST present all reviewer feedback before asking the human which issues to address
 - In interactive mode: you MUST NOT auto-dismiss any reviewer feedback — only the human decides what to address or dismiss
 - In auto mode: you MUST NOT exceed 3 review-revision rounds
@@ -498,7 +509,7 @@ Develop a comprehensive design document based on the requirements and research. 
 
 **Adversarial Review (design document):**
 - After producing and committing the design document, you MUST run the adversarial review process (see Adversarial Review section)
-- Use the **Design Document** perspectives: Architecture, Security, Maintainability
+- Use the **Design Document** personas: Staff Engineer, UX Engineer, QE Engineer
 - Apply the iteration protocol matching the current mode (interactive or auto)
 - If revisions are made, re-commit `{epic_dir}/design.md` with message `docs(specs): revise design after review for {epic_name}`
 - In interactive mode: complete the adversarial review before asking the user to proceed to Step 8
@@ -576,7 +587,7 @@ Create a structured story breakdown with a series of stories for implementing th
 
 **Adversarial Review (story breakdown):**
 - After producing and committing the story breakdown, you MUST run the adversarial review process (see Adversarial Review section)
-- Use the **Story Breakdown** perspectives: Scope, Dependency Correctness, Risk
+- Use the **Story Breakdown** personas: Staff Engineer, Delivery/PM
 - Apply the iteration protocol matching the current mode (interactive or auto)
 - If revisions are made, re-commit `{epic_dir}/plan.md` and updated `{epic_dir}/requirements.md` (traceability matrix) with message `docs(specs): revise plan after review for {epic_name}`
 - In interactive mode: complete the adversarial review before proceeding to Step 9
