@@ -603,9 +603,25 @@ After presenting the summary, you MUST:
 
 1. **Open a PR** on the team repo with the spec artifacts, linked to the epic issue. The PR title should reference the epic (e.g., `[#1] Planning: Tmux agent sessions for observability`). The PR body should summarize the artifacts produced and link to them.
 2. **Move the epic issue** to `human:po:plan-review` using the `status-workflow` skill.
-3. **Inform the user** that the PR is open and the epic is in plan-review. Merging the PR = plan approval.
+3. **Inform the user** that the PR is open and the epic is in plan-review.
 
-You MUST NOT offer to create stories or chain into code-task-generator — that happens at `eng:lead:breakdown` after plan approval.
+**Skill Chaining (interactive mode only):**
+
+After the PR is opened, you MUST offer to continue with story creation:
+
+- Ask the user: "Would you like to proceed with story breakdown now, or stop here and review the PR first?"
+- If the user wants to **stop here**: end the skill. The user will review and merge the PR externally. The board scanner picks up the approved epic at `eng:lead:breakdown`.
+- If the user wants to **continue in this session**:
+  1. The user reviews the plan during the conversation. When they approve:
+  2. Check if the spec PR is still open. If so, confirm with the user: "The spec PR needs to be merged before breakdown. Should I merge it now?"
+  3. If confirmed, merge the PR using the `github-project` skill.
+  4. Move the epic to `eng:lead:breakdown`.
+  5. Load the `code-task-generator` skill and chain into it for each story (each `STEP-NN` maps 1:1 to a story issue).
+  6. For each story, the code-task-generator follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
+  7. You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator.
+- If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
+  - **All stories first:** Create all story issues from plan steps, then decompose each story into tasks
+  - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
 
 **PR and Status Transition (auto mode only):**
 
