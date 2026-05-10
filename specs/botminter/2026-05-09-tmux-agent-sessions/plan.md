@@ -2,10 +2,10 @@
 
 ## Checklist
 
-- [ ] STEP-01: Create tmux module with config and session lifecycle
-- [ ] STEP-02: Add tmux window management
-- [ ] STEP-03: Integrate tmux into launch and start/stop orchestration
-- [ ] STEP-04: Add operator UX — attach, status, prerequisites, E2E and exploratory tests
+- [ ] STORY-01: Create tmux module with config and session lifecycle
+- [ ] STORY-02: Add tmux window management
+- [ ] STORY-03: Integrate tmux into launch and start/stop orchestration
+- [ ] STORY-04: Add operator UX — attach, status, prerequisites, E2E and exploratory tests
 
 ## CI Prerequisite
 
@@ -13,7 +13,7 @@ tmux 3.0+ must be installed in CI environments that run integration and E2E test
 
 ---
 
-## STEP-01: Create tmux module with config and session lifecycle
+## STORY-01: Create tmux module with config and session lifecycle
 
 **Title:** Add `formation/local/tmux/` module with config management and session lifecycle
 
@@ -36,17 +36,19 @@ tmux 3.0+ must be installed in CI environments that run integration and E2E test
 - Integration tests: session create → exists returns true → destroy → exists returns false
 - Integration tests: config file written with correct permissions (stat check)
 
-**Integration:** This step establishes the module structure that all subsequent steps build on. No existing code is modified — this is purely additive.
+**Integration:** This step establishes the module structure that all subsequent stories build on. No existing code is modified — this is purely additive.
+
+**CI precondition:** tmux must be installed in CI before this story's integration tests run (see CI Prerequisite section above). Add `apt install -y tmux` to CI setup as part of this story.
 
 **Demo:** Run the integration tests showing a tmux session being created and destroyed programmatically. Show `~/.botminter/tmux.conf` written with correct content and `0600` permissions.
 
 **Requirements:** TMUX-01, TMUX-03, TMUX-04, BRAND-01
-**Acceptance Criteria:** AC-01 (partial — version check), AC-02 (version error)
+**Acceptance Criteria:** AC-02 (partial — version parsing and error message at library level, wired into `bm start` in STORY-03/04), AC-17
 **Dependencies:** —
 
 ---
 
-## STEP-02: Add tmux window management
+## STORY-02: Add tmux window management
 
 **Title:** Implement window lifecycle in `TmuxSession` — create, query, and manage windows
 
@@ -62,7 +64,7 @@ tmux 3.0+ must be installed in CI environments that run integration and E2E test
 - `remove_window()` calls `tmux kill-window -t <target>`
 - `remove_dead_window()` checks `is_pane_dead()` before removing
 - `session_info()` returns `SessionInfo` with window list and attach command string
-- `attach()` execs `tmux -L botminter attach-session -t <session>`. Note: this call blocks until the user detaches — all callers of `Formation::shell()` must tolerate this.
+- `attach(window)` execs `tmux -L botminter attach-session -t <session>` (if `window` is `None`) or `tmux -L botminter attach-session -t <session>:<window>` (if `window` is `Some`). Note: this call blocks until the user detaches — all callers of `Formation::shell()` must tolerate this.
 
 **Test Requirements:**
 - Integration tests: create window running `sleep 300` → `pane_pid()` returns a valid PID → `is_pane_dead()` returns false
@@ -70,18 +72,19 @@ tmux 3.0+ must be installed in CI environments that run integration and E2E test
 - Integration tests: `remove_dead_window()` removes dead window, leaves live window untouched
 - Integration tests: `list_windows()` returns correct window names and indices
 - Integration tests: window name validation rejects invalid characters
+- Integration tests (failure paths): `create_window` with invalid name returns validation error; `create_window` when session does not exist returns clear error; `pane_pid` on non-existent window returns error; `create_window` for immediately-exiting command returns error with exit status
 
-**Integration:** Builds on STEP-01's session lifecycle. These methods are consumed by STEP-03 (launch + orchestration integration).
+**Integration:** Builds on STORY-01's session lifecycle. These methods are consumed by STORY-03 (launch + orchestration integration).
 
 **Demo:** Run integration tests showing: create a session, add two windows (one long-running, one that exits), list windows showing both, detect the dead pane, remove only the dead window.
 
 **Requirements:** SESS-02, SESS-03, LIFE-03
-**Acceptance Criteria:** AC-04 (partial — output visible in pane), AC-08 (partial — dead pane detection)
-**Dependencies:** STEP-01
+**Acceptance Criteria:** AC-04 (primitive only — pane output capture verified via integration test, not via `bm start` E2E), AC-08 (primitive only — dead pane detection verified via integration test, not via `bm stop` E2E)
+**Dependencies:** STORY-01
 
 ---
 
-## STEP-03: Integrate tmux into launch and start/stop orchestration
+## STORY-03: Integrate tmux into launch and start/stop orchestration
 
 **Title:** Wire tmux into `launch_ralph()`, `launch_brain()`, and `start_local_members()` in a single atomic step
 
@@ -104,6 +107,7 @@ tmux 3.0+ must be installed in CI environments that run integration and E2E test
 - Construct `TmuxSession::new(&team.name)?`
 - Full start (`member_filter.is_none()`): `tmux.destroy_if_exists()` then `tmux.create()`. Log "Destroying previous session bm-<team>" when an existing session is found.
 - Single start: `if !tmux.exists() { tmux.create()? }`
+- Before each member launch: skip if member already has a live window — `if tmux.window_exists(&member) && !tmux.is_pane_dead(&member)?`, log a warning with the running PID and continue to the next member
 - Before each member launch: if `tmux.window_exists(&member) && tmux.is_pane_dead(&member)?`, call `tmux.remove_dead_window(&member)?`. This handles the case where `bm stop` removed the PID from state.json but `remain-on-exit on` left the dead tmux window.
 - Pass `&tmux` to `launch_ralph()` / `launch_brain()`
 
@@ -118,53 +122,66 @@ tmux 3.0+ must be installed in CI environments that run integration and E2E test
 **Test Requirements:**
 - Integration test: `launch_ralph(&tmux, ...)` with a stub command → window exists with correct name → PID matches a running process
 - Integration test: verify `brain-stderr.log` is written alongside tmux pane output for brain launches
-- Integration test: env vars passed via `-e` are accessible inside the window
+- Integration test: env vars passed via `-e` are accessible inside the window but NOT visible in `#{pane_start_command}` (primary assertion) or `ps -p <pid> -o args=` (secondary assertion, use deterministic format)
 - Integration test: full start creates session + windows → stop kills processes → windows show "Pane is dead" → second full start destroys old session and creates fresh one
 - Integration test: single member start creates session with one window → second single member adds window to existing session
 - Integration test: stop member → start same member → dead window removed, new window created with live process
+- Integration test: start member when member already has a live window → skip with warning message, existing process undisturbed
+- Integration test: verify `TMUX_TMPDIR` is unset — socket created under `/tmp/tmux-<uid>/` even when `TMUX_TMPDIR` is set in env
 
 **Integration:** This is the core integration step. It modifies `launch.rs` and `start_members.rs` atomically — both signature changes and caller updates in the same commit. After this, `bm start` and `bm stop` work with tmux end-to-end.
+
+**Size risk:** This is the largest story. If it runs long, consider splitting into (a) launch rewrite with a simple always-destroy-and-create session lifecycle, and (b) smart orchestration (full-vs-single-start branching, dead-window cleanup, skip-if-live-window). Both sub-stories are independently demoable.
 
 **Demo:** Run `bm start` → `tmux -L botminter list-windows -t bm-<team>` shows all member windows → `bm stop` → windows remain with dead panes → `bm start bob` → dead window replaced with live window.
 
 **Requirements:** TMUX-01, TMUX-02, TMUX-04, SESS-01, SESS-02, SESS-03, SESS-04, LIFE-01, LIFE-02, LIFE-03, LIFE-04
-**Acceptance Criteria:** AC-03, AC-04, AC-05, AC-06, AC-07, AC-08, AC-09
-**Dependencies:** STEP-02
+**Acceptance Criteria:** AC-01 (partial — failure path exists via `check_tmux_available()`, UX refined in STORY-04), AC-03, AC-04, AC-05, AC-06, AC-07a, AC-07b, AC-08, AC-09, AC-15, AC-16, AC-18
+**Dependencies:** STORY-02
 
 ---
 
-## STEP-04: Add operator UX — attach, status, prerequisites, and test coverage
+## STORY-04: Add operator UX — attach, status, prerequisites, and test coverage
 
 **Title:** Implement `bm attach`, tmux info in `bm status`, prerequisites error messages, branded config verification, and E2E/exploratory test updates
 
-**Objective:** Complete the operator-facing UX and test coverage. `bm attach` attaches to the tmux session (with nested-session warning), `bm status` shows tmux session info and attach hint, `check_prerequisites()` includes tmux with actionable error messages. Update E2E and exploratory tests to verify tmux behavior.
+**Objective:** Complete the operator-facing UX and test coverage. `bm attach [member]` attaches to the tmux session (optionally targeting a specific member's window, with nested-session warning and pre-attach cheat sheet), `bm status` shows tmux session info with both `bm attach` and raw tmux attach commands, `check_prerequisites()` includes tmux with actionable error messages. Update E2E and exploratory tests to verify tmux behavior.
 
 **Implementation Guidance:**
-- `LinuxLocalFormation::shell()`: change from error to `TmuxSession::new(&self.team_name)?.attach()`. Note: `attach()` blocks until the user detaches — this is correct for `shell()` semantics (the existing Lima implementation also blocks via `lima.exec_shell()`). Before attaching, check `$TMUX` env var — if set, print warning about nested sessions and `C-b d` to detach.
+- `Formation::shell()` trait: add `member: Option<String>` parameter to the trait method signature. This requires updating all trait implementors — update `LimaFormation::shell()` (and any other formations) to accept and ignore the parameter if per-member attach is not applicable.
+- `LinuxLocalFormation::shell(member)`: change from error to `TmuxSession::new(&self.team_name)?.attach(member.as_deref())`. Before attaching, print a brief tmux cheat sheet to stderr (Ctrl-b n/p/[/d). Check `$TMUX` env var — if set, print actionable warning about nested sessions with detach advice. `attach()` blocks until the user detaches — this is correct for `shell()` semantics.
+- `commands/attach.rs`: pass the optional member argument from the CLI through to `Formation::shell(member)`. This enables `bm attach [member]` to jump directly to a specific agent's window.
 - `LinuxLocalFormation::check_prerequisites()`: add tmux check via `TmuxSession::check_tmux_available()`. Error messages: "tmux is required but not found. Install with: apt install tmux / dnf install tmux" and "tmux 3.0+ is required (found X.Y). Please upgrade."
-- `state/dashboard.rs`: add `tmux: Option<TmuxStatusInfo>` to `StatusInfo`. In `gather_status()`, construct `TmuxSession` and call `session_info()` if session exists.
-- `commands/status.rs`: display tmux info after daemon info: `tmux: bm-may-team (3 windows)` and `attach: bm attach`.
-- Verify branded tmux.conf renders correctly: status bar with "botminter", session name, window tabs, keybinding hints.
+- `state/dashboard.rs`: add `tmux: Option<TmuxStatusInfo>` to `StatusInfo` with both `attach_command` ("bm attach") and `raw_attach_command` ("tmux -L botminter attach -t bm-<team>"). In `gather_status()`, construct `TmuxSession` and call `session_info()` if session exists.
+- `commands/status.rs`: display tmux info after daemon info: `tmux: bm-may-team (3 windows)` and `attach: bm attach  (or: tmux -L botminter attach -t bm-may-team)`.
+- Verify branded tmux.conf renders correctly: status bar with "botminter", session name, window tabs, keybinding hints including `C-b [:scroll`.
 
 **Test Requirements:**
 - Integration test: `check_prerequisites()` succeeds with tmux installed
-- Integration test: `shell()` on a running session attaches (can test by immediately detaching via `send-keys C-b d`)
+- Integration test: `shell(None)` on a running session attaches (can test by immediately detaching via `send-keys C-b d`)
+- Integration test: `shell(Some("bob"))` attaches with window `bob` selected
+- Integration test: `shell(None)` with no session returns actionable error
+- Integration test: `shell(None)` with `$TMUX` set prints nested-session warning and proceeds
 - E2E test updates: after `bm start`, verify `tmux -L botminter has-session -t bm-<team>` succeeds and `tmux -L botminter list-windows` returns expected windows
-- E2E test updates: `bm status` output contains tmux session name and "bm attach"
+- E2E test updates: `bm status` output contains tmux session name, "bm attach", and raw tmux command
 - E2E test updates: after `bm stop`, verify windows still exist with dead panes
-- Exploratory test updates: add tmux verification to relevant phases (session creation, window naming, post-mortem scrollback)
+- Exploratory test updates: add tmux verification to relevant phases (session creation, window naming, post-mortem scrollback, cheat sheet output)
 
 **Integration:** This is the final step — after this, the full operator journey works end-to-end.
 
+**Split risk:** If E2E/exploratory test updates prove difficult (CI timing, environment issues), split them into a follow-up. The core UX features (attach, status, prerequisites) are the demoable deliverables.
+
 **Demo:** Full operator journey:
 1. `bm start` — members launch in tmux
-2. `bm status` — shows `tmux: bm-may-team (3 windows)` and `attach: bm attach`
-3. `bm attach` — enters tmux session with branded status bar showing "botminter | bm-may-team | 1:bob 2:cos 3:sentinel | C-b n:next C-b p:prev C-b d:detach | 14:23"
-4. Navigate windows with `C-b n` — see live agent output
-5. `C-b d` to detach
-6. `bm stop` — processes die, windows remain
-7. `bm attach` — see dead pane messages with scrollback intact
+2. `bm status` — shows `tmux: bm-may-team (3 windows)` and `attach: bm attach  (or: tmux -L botminter attach -t bm-may-team)`
+3. `bm attach` — prints cheat sheet (Ctrl-b n/p/[/d), enters tmux session with branded status bar showing "botminter | bm-may-team | 1:bob 2:cos 3:sentinel | C-b n:next C-b p:prev C-b [:scroll C-b d:detach | 14:23"
+4. `C-b d` to detach
+5. `bm attach bob` — attaches directly to bob's window
+6. Navigate windows with `C-b n` — see live agent output
+7. `C-b d` to detach
+8. `bm stop` — processes die, windows remain
+9. `bm attach` — see dead pane messages with scrollback intact
 
 **Requirements:** TMUX-02, UX-01, UX-02, UX-03, BRAND-01, BRAND-02, BRAND-03
-**Acceptance Criteria:** AC-01, AC-10, AC-11, AC-12, AC-13
-**Dependencies:** STEP-03
+**Acceptance Criteria:** AC-01, AC-10, AC-10b, AC-11, AC-12, AC-13, AC-14, AC-19
+**Dependencies:** STORY-03

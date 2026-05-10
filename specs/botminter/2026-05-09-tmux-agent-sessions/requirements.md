@@ -45,23 +45,23 @@
 
 ## Traceability Matrix
 
-| Requirement | Acceptance Criteria | Implementation Step | Status |
+| Requirement | Acceptance Criteria | Story | Status |
 |-------------|--------------------|--------------------|--------|
-| TMUX-01 | AC-03 | STEP-01, STEP-03 | Pending |
-| TMUX-02 | AC-01 | STEP-03, STEP-04 | Pending |
-| TMUX-03 | AC-02 | STEP-01 | Pending |
-| TMUX-04 | AC-03 | STEP-01, STEP-03 | Pending |
-| SESS-01 | AC-03 | STEP-03 | Pending |
-| SESS-02 | AC-03 | STEP-02, STEP-03 | Pending |
-| SESS-03 | AC-04 | STEP-03 | Pending |
-| SESS-04 | AC-05 | STEP-03 | Pending |
-| LIFE-01 | AC-06 | STEP-03 | Pending |
-| LIFE-02 | AC-07 | STEP-03 | Pending |
-| LIFE-03 | AC-08 | STEP-02, STEP-03 | Pending |
-| LIFE-04 | AC-09 | STEP-03 | Pending |
-| UX-01 | AC-10 | STEP-04 | Pending |
-| UX-02 | AC-11 | STEP-04 | Pending |
-| UX-03 | AC-11 | STEP-04 | Pending |
-| BRAND-01 | AC-12 | STEP-01, STEP-04 | Pending |
-| BRAND-02 | AC-13 | STEP-01, STEP-04 | Pending |
-| BRAND-03 | AC-12 | STEP-01, STEP-04 | Pending |
+| TMUX-01 | AC-03 | STORY-01, STORY-03 | Pending |
+| TMUX-02 | AC-01 | STORY-03, STORY-04 | Pending |
+| TMUX-03 | AC-02 | STORY-01 | Pending |
+| TMUX-04 | AC-03, AC-15 | STORY-01, STORY-03 | Pending |
+| SESS-01 | AC-03 | STORY-03 | Pending |
+| SESS-02 | AC-03 | STORY-02, STORY-03 | Pending |
+| SESS-03 | AC-04 | STORY-03 | Pending |
+| SESS-04 | AC-05 | STORY-03 | Pending |
+| LIFE-01 | AC-06 | STORY-03 | Pending |
+| LIFE-02 | AC-07a, AC-07b | STORY-03 | Pending |
+| LIFE-03 | AC-08, AC-18 | STORY-02, STORY-03 | Pending |
+| LIFE-04 | AC-09 | STORY-03 | Pending |
+| UX-01 | AC-10, AC-10b, AC-14, AC-19 | STORY-04 | Pending |
+| UX-02 | AC-11 | STORY-04 | Pending |
+| UX-03 | AC-11 | STORY-04 | Pending |
+| BRAND-01 | AC-12, AC-17 | STORY-01, STORY-04 | Pending |
+| BRAND-02 | AC-13 | STORY-01, STORY-04 | Pending |
+| BRAND-03 | AC-12 | STORY-01, STORY-04 | Pending |

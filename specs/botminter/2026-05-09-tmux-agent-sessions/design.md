@@ -106,7 +106,7 @@ impl TmuxSession {
     pub fn pane_pid(&self, window: &str) -> Result<u32>;
 
     // Operator interaction
-    pub fn attach(&self) -> Result<()>;
+    pub fn attach(&self, window: Option<&str>) -> Result<()>;
     pub fn session_info(&self) -> Result<SessionInfo>;
 }
 
@@ -171,8 +171,9 @@ The `TmuxSession` is passed into `launch_ralph()` and `launch_brain()` as a para
 1. Validates the window name against `[a-zA-Z0-9_-]` (rejects shell metacharacters)
 2. Constructs the tmux command using `-e KEY=VALUE` flags for each env var (NOT shell string interpolation — secrets are never embedded in the command string)
 3. Calls `tmux -L botminter new-window -t <session> -n <member> -c <workspace> -e K1=V1 -e K2=V2 -- <cmd> <args...>`
-4. Queries `#{pane_pid}` to get the actual process PID inside the window
-5. Returns the PID for state.json tracking
+4. Queries `#{pane_pid}` to get the actual process PID inside the window (tmux forks the pane process synchronously during `new-window`, so `#{pane_pid}` is available immediately — no polling needed)
+5. Validates the PID is alive via `kill(pid, 0)` — if the process already exited (e.g., binary not found, immediate crash), returns an error with the exit status from `#{pane_dead_status}` rather than a stale PID
+6. Returns the PID for state.json tracking
 
 **Security note:** The `-e` flag passes env vars via tmux's internal mechanism, not through the shell. This prevents secrets from appearing in `#{pane_start_command}` or in `ps` output. The command arguments are passed as a list (not a shell string), matching the current `Command::new()` pattern in `launch_ralph()`/`launch_brain()`.
 
@@ -220,7 +221,14 @@ fn start_local_members(...) -> Result<StartResult> {
     for member in members {
         // ... existing credential resolution ...
 
-        // Clean up dead window from previous run before creating new one (A3 fix)
+        // Skip if member already has a live window
+        if tmux.window_exists(&member) && !tmux.is_pane_dead(&member)? {
+            let running_pid = tmux.pane_pid(&member)?;
+            warn!("Member '{}' is already running (pid {}). Use 'bm stop {}' first.", member, running_pid, member);
+            continue;
+        }
+
+        // Clean up dead window from previous run before creating new one
         if tmux.window_exists(&member) && tmux.is_pane_dead(&member)? {
             tmux.remove_dead_window(&member)?;
         }
@@ -254,15 +262,22 @@ No tmux-specific stop logic needed — `remain-on-exit on` in the config keeps t
 
 **`check_prerequisites()`**: Add tmux availability check alongside the existing `ralph` check.
 
-**`shell()`**: Currently returns an error ("not applicable for local formation"). Change to attach to the tmux session:
+**`shell()`**: Currently returns an error ("not applicable for local formation"). Change to attach to the tmux session. Before attaching, print a brief tmux cheat sheet to stdout to help operators unfamiliar with tmux:
 
 ```rust
-fn shell(&self) -> Result<()> {
+fn shell(&self, member: Option<String>) -> Result<()> {
     let tmux = TmuxSession::new(&self.team_name);
     if !tmux.exists() {
         bail!("No tmux session found. Start members first with: bm start");
     }
-    tmux.attach()
+    // Print cheat sheet before exec-ing into tmux
+    eprintln!("Attaching to tmux session '{}'...", tmux.session_name);
+    eprintln!("  Ctrl-b n     next window");
+    eprintln!("  Ctrl-b p     prev window");
+    eprintln!("  Ctrl-b [     scroll mode (q to exit)");
+    eprintln!("  Ctrl-b d     detach (return to shell)");
+    eprintln!();
+    tmux.attach(member.as_deref())  // None for full session, Some("bob") for direct window
 }
 ```
 
@@ -274,7 +289,7 @@ fn shell(&self) -> Result<()> {
 
 ### 6. `commands/attach.rs` (Modified)
 
-The v2 formation path currently calls `local_formation.shell()` which errors. With this change, `shell()` attaches to the tmux session — the existing command code works without modification.
+The v2 formation path currently calls `local_formation.shell()` which errors. With this change, `shell()` attaches to the tmux session. The `bm attach` command accepts an optional member argument (`bm attach [member]`): when provided, the tmux session opens directly to that member's window. The `Formation::shell()` trait method gains an `Option<String>` parameter for the target member name.
 
 ### 7. `commands/status.rs` (Modified)
 
@@ -291,14 +306,15 @@ pub struct TmuxStatusInfo {
     pub session_name: String,
     pub socket_name: String,
     pub window_count: usize,
-    pub attach_command: String,
+    pub attach_command: String,          // "bm attach"
+    pub raw_attach_command: String,      // "tmux -L botminter attach -t bm-<team>"
 }
 ```
 
 The status command displays:
 ```
   tmux: bm-may-team (3 windows)
-  attach: bm attach
+  attach: bm attach  (or: tmux -L botminter attach -t bm-may-team)
 ```
 
 ### 8. Custom tmux.conf
@@ -334,8 +350,8 @@ set -g status-left-length 50
 set -g status-left "#[fg=colour39,bold] botminter #[fg=colour244]|#[fg=colour255] #S #[fg=colour244]| #[default]"
 
 # Right: keybinding hints
-set -g status-right-length 80
-set -g status-right "#[fg=colour244] C-b n:next  C-b p:prev  C-b d:detach #[fg=colour244]| #[fg=colour166]%H:%M #[default]"
+set -g status-right-length 100
+set -g status-right "#[fg=colour244] C-b n:next  C-b p:prev  C-b [:scroll  C-b d:detach #[fg=colour244]| #[fg=colour166]%H:%M #[default]"
 
 # Window tabs
 set -wg window-status-format "#[fg=colour244] #I:#W "
@@ -346,13 +362,16 @@ set -wg window-status-separator ""
 set -g mouse on
 
 # ── Security ─────────────────────────────────────────
-# Prevent operator's env vars from leaking into agent sessions on attach
+# Prevent operator's env vars from leaking into agent sessions on attach.
+# Tradeoff: the operator cannot pass env vars to agents via attach for debugging.
+# This is intentional — agent env vars are set at launch time via -e flags.
+# TERM is set at session creation and does not need updating on reattach.
 set -g update-environment ""
 ```
 
 The status bar shows:
 ```
- botminter | bm-may-team |  1:bob  2:cos  3:sentinel  | C-b n:next  C-b p:prev  C-b d:detach | 14:23
+ botminter | bm-may-team |  1:bob  2:cos  3:sentinel  | C-b n:next  C-b p:prev  C-b [:scroll  C-b d:detach | 14:23
 ```
 
 ## Data Models
@@ -379,39 +398,143 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 | tmux not installed | `bm start` fails with: "tmux is required but not found. Install it with: apt install tmux / dnf install tmux" |
 | tmux version < 3.0 | `bm start` fails with: "tmux 3.0+ is required (found X.Y). Please upgrade." |
 | Session already exists on full start | Destroy and recreate (LIFE-01) |
-| Window name collision (live process) on single start | Skip member (already running) — same as current PID-based skip |
+| Window name collision (live process) on single start | Skip member with message: "Member '<name>' is already running (pid <N>). Use 'bm stop <name>' first." |
 | Window name collision (dead pane) on single start | Remove the dead window, then create a fresh one for the new member launch |
 | tmux server dies mid-operation | Processes inside windows die (SIGTERM from tmux). State.json still has PIDs → `is_alive()` detects death → `cleanup_stale()` cleans up on next `bm start` or `bm status` |
 | `bm attach` with no session | Error: "No tmux session found. Start members first with: bm start" |
-| `bm attach` from inside tmux | Detect `$TMUX` env var and print a warning: "You are already inside a tmux session. BotMinter uses a separate tmux server. To detach from the BotMinter session, press C-b d." Then proceed with the attach. |
+| `bm attach` from inside tmux | Detect `$TMUX` env var and print a warning: "You are already inside a tmux session. BotMinter runs on a separate server (-L botminter). To avoid double-prefix issues, detach first (Ctrl-b d) then run 'bm attach'. Proceeding anyway..." Then proceed with the attach. |
+| Manual session cleanup | Not a `bm` subcommand. Operators can destroy the tmux session manually with: `tmux -L botminter kill-session -t bm-<team>`. This clears all windows, dead panes, and scrollback. Normal workflow: `bm start` handles cleanup automatically (LIFE-01). |
 
 ## Acceptance Criteria
 
-**AC-01:** Given tmux is not installed, when the operator runs `bm start`, then the command exits with an error message naming the missing dependency and suggesting installation commands. (Verifies TMUX-02)
+**AC-01:** Given tmux is not installed,
+when the operator runs `bm start`,
+then the command exits with a non-zero status,
+and the error message names "tmux" as the missing dependency,
+and the error message suggests installation commands for at least two package managers.
+(Verifies TMUX-02)
 
-**AC-02:** Given tmux version is below 3.0, when the operator runs `bm start`, then the command exits with an error message showing the found version and the minimum required version. (Verifies TMUX-03)
+**AC-02:** Given tmux is installed but the version is below 3.0,
+when the operator runs `bm start`,
+then the command exits with a non-zero status,
+and the error message shows the found version number,
+and the error message states that version 3.0+ is required.
+(Verifies TMUX-03)
 
-**AC-03:** Given a team with 3 members, when the operator runs `bm start`, then a tmux session named `bm-<team>` is created on a dedicated `botminter` socket with 3 windows named after the members. (Verifies TMUX-04, SESS-01, SESS-02)
+**AC-03:** Given a team with 3 members,
+when the operator runs `bm start`,
+then a tmux session named `bm-<team>` exists,
+and the session uses the dedicated `botminter` socket (`-L botminter`),
+and the session contains exactly 3 windows,
+and each window is named after its corresponding member.
+(Verifies TMUX-04, SESS-01, SESS-02)
 
-**AC-04:** Given agents are running in tmux, when the operator runs `tmux -L botminter attach -t bm-<team>` and switches to a member's window, then live agent stdout/stderr output is visible in the pane. (Verifies SESS-03)
+**AC-04:** Given agents are running in tmux,
+when `tmux -L botminter capture-pane -t bm-<team>:<member> -p` is polled at intervals within 10 seconds of agent startup,
+then the captured output contains agent process output (stdout or stderr).
+(Verifies SESS-03)
 
-**AC-05:** Given agents are running in tmux, when the operator checks the daemon process, then the daemon is running as a background process and is NOT in any tmux window. (Verifies SESS-04)
+**AC-05:** Given agents are running in tmux,
+when the operator lists tmux windows via `tmux -L botminter list-windows`,
+then the daemon process name does not appear in any window name,
+and the daemon PID is not the `#{pane_pid}` of any window.
+(Verifies SESS-04)
 
-**AC-06:** Given a tmux session `bm-<team>` exists from a previous run, when the operator runs `bm start` (all members), then the old session is destroyed and a new one is created. (Verifies LIFE-01)
+**AC-06:** Given a tmux session `bm-<team>` exists from a previous run,
+when the operator runs `bm start` (all members),
+then the old session is destroyed,
+and a new session `bm-<team>` is created with fresh windows.
+(Verifies LIFE-01)
 
-**AC-07:** Given no tmux session exists, when the operator runs `bm start bob`, then a session `bm-<team>` is created with a single window `bob`. Given the session exists, when the operator then runs `bm start cos`, then a window `cos` is added to the existing session. (Verifies LIFE-02)
+**AC-07a:** Given no tmux session exists,
+when the operator runs `bm start bob`,
+then a session `bm-<team>` is created,
+and the session contains exactly one window named `bob`.
+(Verifies LIFE-02, session creation path)
 
-**AC-08:** Given agents are running in tmux, when the operator runs `bm stop`, then all agent processes are killed but the tmux windows remain showing "Pane is dead" with scrollback intact. (Verifies LIFE-03)
+**AC-07b:** Given a tmux session `bm-<team>` exists with window `bob`,
+when the operator runs `bm start cos`,
+then a window `cos` is added to the existing session,
+and window `bob` remains undisturbed with its original process still running.
+(Verifies LIFE-02, additive window path)
 
-**AC-09:** Given the daemon triggers a member launch via HTTP API, when the member starts, then it runs inside a tmux window in the team session. (Verifies LIFE-04)
+**AC-08:** Given agents are running in tmux,
+when the operator runs `bm stop`,
+then all agent processes are terminated,
+and the tmux windows remain in the session,
+and each window shows "Pane is dead" status,
+and scrollback content from before the stop is intact.
+(Verifies LIFE-03)
 
-**AC-10:** Given agents are running in tmux, when the operator runs `bm attach`, then the operator is attached to the team's tmux session. (Verifies UX-01)
+**AC-09:** Given the daemon is running,
+when a member start is triggered via the daemon's HTTP API (not via `bm start` CLI),
+then the member runs inside a tmux window in the `bm-<team>` session,
+and `tmux -L botminter list-windows` contains the member name.
+(Verifies LIFE-04)
 
-**AC-11:** Given agents are running in tmux, when the operator runs `bm status`, then the output shows the tmux session name, window count, and the `bm attach` command. (Verifies UX-02, UX-03)
+**AC-10:** Given agents are running in tmux,
+when the operator runs `bm attach`,
+then the operator is attached to the `bm-<team>` tmux session.
+(Verifies UX-01)
 
-**AC-12:** Given agents are running in tmux, when the operator attaches to the session, then a branded status bar is visible showing "botminter", the session name, window tabs, and keybinding hints for next/prev/detach. (Verifies BRAND-01, BRAND-02)
+**AC-10b:** Given agents are running in tmux,
+when the operator runs `bm attach bob`,
+then the operator is attached to the `bm-<team>` session with window `bob` selected.
+(Verifies UX-01 — per-member attach)
 
-**AC-13:** Given the custom tmux.conf is loaded, when the operator views the status bar, then keybinding hints `C-b n:next`, `C-b p:prev`, `C-b d:detach` are visible. (Verifies BRAND-02)
+**AC-11:** Given agents are running in tmux,
+when the operator runs `bm status`,
+then the output includes the tmux session name,
+and the output includes the window count,
+and the output includes the `bm attach` command.
+(Verifies UX-02, UX-03)
+
+**AC-12:** Given agents are running in tmux,
+when the operator attaches to the session,
+then a status bar is visible,
+and the status bar contains the text "botminter",
+and the status bar shows the session name,
+and the status bar shows window tabs with member names.
+(Verifies BRAND-01, BRAND-03 — status bar branding only; ASCII art deferred per D-05)
+
+**AC-13:** Given the custom tmux.conf is loaded,
+when the operator views the status bar,
+then keybinding hints `C-b n:next`, `C-b p:prev`, `C-b [:scroll`, `C-b d:detach` are visible.
+(Verifies BRAND-02)
+
+**AC-14:** Given the operator is already inside a tmux session (`$TMUX` is set),
+when the operator runs `bm attach`,
+then a warning message is displayed about the nested session and how to detach,
+and the attach proceeds.
+(Verifies error handling — nested tmux detection)
+
+**AC-15:** Given the operator's environment has `TMUX_TMPDIR` set to a shared directory,
+when `bm start` creates the tmux session,
+then the tmux socket is created under `/tmp/tmux-<uid>/` (the secure default),
+and the socket is not created under the `TMUX_TMPDIR` path.
+(Verifies D-09 — TMUX_TMPDIR security)
+
+**AC-16:** Given agents are running in tmux,
+when an observer runs `ps aux` and queries `tmux -L botminter display-message -t bm-<team>:<member> -p '#{pane_start_command}'`,
+then no credential values (API tokens, bridge tokens) appear in the output.
+(Verifies credential security via `-e` flag)
+
+**AC-17:** Given `bm start` has been run,
+then the file `~/.botminter/tmux.conf` exists,
+and the file has `0600` permissions,
+and the file contains the expected BotMinter configuration directives.
+(Verifies D-02 — config file security)
+
+**AC-18:** Given a tmux window `bob` exists with a dead pane (process exited),
+when the operator runs `bm start bob`,
+then the dead window is removed,
+and a new window `bob` is created with a live process.
+(Verifies dead-window cleanup)
+
+**AC-19:** Given no tmux session exists,
+when the operator runs `bm attach`,
+then the command exits with error message "No tmux session found. Start members first with: bm start".
+(Verifies error handling — attach with no session)
 
 ## Design Decisions
 
@@ -435,22 +558,27 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 - **Alternatives:** `remain-on-exit failed` (only on error), no remain-on-exit (destroy window), explicit `bm stop` handling
 - **Rationale:** The operator wants to inspect agent output after stop regardless of exit code. `remain-on-exit on` is the simplest approach — works for both normal stop (SIGTERM → non-zero exit) and clean exit. Dead panes show exit status and timestamp automatically.
 
-**D-05:** Shell out to tmux CLI, do not use `tmux_interface` crate
+**D-05:** BRAND-03 satisfied by status bar text; ASCII art splash deferred
+- **Chosen:** The "botminter" branding text in the status bar satisfies BRAND-03's "branding … in the status bar" variant
+- **Alternatives:** ASCII art splash window on initial attach, welcome banner printed by `bm attach` before exec
+- **Rationale:** BRAND-03 is should-have. The status bar is always visible and provides continuous branding. An ASCII art splash adds complexity (extra window or pre-attach stdout) for minimal value at alpha. Can be added later without design changes.
+
+**D-06:** Shell out to tmux CLI, do not use `tmux_interface` crate
 - **Chosen:** `std::process::Command` shelling out to `tmux`
 - **Alternatives:** `tmux_interface` crate, tmux control mode (`-C`)
 - **Rationale:** The project favors minimal dependencies (e.g., ADR-0010 chose a second binary target over a separate crate). The tmux CLI is the stable interface. Shelling out is 20 lines of straightforward code vs adding a crate dependency. Control mode is overkill for our needs.
 
-**D-06:** No changes to `MemberRuntime` / `state.json` schema
+**D-07:** No changes to `MemberRuntime` / `state.json` schema
 - **Chosen:** Keep existing PID-based state tracking, derive tmux info from team name
 - **Alternatives:** Add tmux_session/tmux_window fields to `MemberRuntime`
 - **Rationale:** The tmux session name is deterministic (`bm-<team>`) and the window name equals the member name. No state needs to be stored — it's derivable. PID tracking still works because `#{pane_pid}` gives the actual process PID on the same host.
 
-**D-07:** No trait abstraction over `TmuxSession` — concrete type, tested via real tmux
+**D-08:** No trait abstraction over `TmuxSession` — concrete type, tested via real tmux
 - **Chosen:** `TmuxSession` is a concrete struct, not a trait implementation. Launch functions accept `&TmuxSession` directly.
 - **Alternatives:** Extract `SessionManager` trait with `TmuxSession` as one impl, allowing mock implementations for CI
 - **Rationale:** The project does not use traits for other external tool wrappers (`gh` CLI, `ralph` CLI, `lima` CLI). The test philosophy is E2E against real infrastructure (ADR-0004, ADR-0009), not mocking. `check_prerequisites()` already checks for `ralph` in PATH the same static way. Adding a trait is premature abstraction for alpha — if tmux needs to be swapped for Zellij later, the trait can be extracted then. CI environments that run integration tests must have tmux installed, which is a trivial dependency (`apt install tmux`).
 
-**D-08:** Unset `TMUX_TMPDIR` before tmux invocations to enforce default socket security
+**D-09:** Unset `TMUX_TMPDIR` before tmux invocations to enforce default socket security
 - **Chosen:** All `TmuxSession` methods unset `TMUX_TMPDIR` in the `Command` environment before invoking `tmux`
 - **Alternatives:** Verify socket directory permissions after creation, use `-S` with an explicit socket path
 - **Rationale:** tmux's default socket directory (`/tmp/tmux-<uid>/`) has `0700` permissions, which is secure. If `TMUX_TMPDIR` is inherited from the operator's environment and points to a shared location, the socket would be accessible to other users. Unsetting it ensures tmux always uses its secure default. This is cheaper and more robust than post-creation permission checks.
@@ -465,6 +593,7 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 
 ### Integration Tests
 
+**Happy path:**
 - tmux prerequisite check succeeds/fails based on PATH
 - Session create/destroy lifecycle
 - Window create/list/kill lifecycle
@@ -472,6 +601,18 @@ No new fields are added to `MemberRuntime`. The tmux session name is determinist
 - `remain-on-exit` keeps window after process exits
 - Dead window cleanup before re-creating a member window
 - Config file written with correct permissions
+- `update-environment ""` prevents env var propagation on attach
+- Credential values not visible in `ps` output or `#{pane_start_command}`
+
+**Failure paths:**
+- `create_window` with invalid window name (shell metacharacters) returns validation error, not shell injection
+- `create_window` when session does not exist returns a clear error
+- `pane_pid` on a non-existent window returns an error
+- `create_window` for a command that exits immediately: PID validation detects dead process and returns error with exit status
+- `attach` with non-existent session returns actionable error
+
+**Timing considerations:**
+- Integration tests that check `is_pane_dead` after process kill use polling with timeout (not fixed sleeps) to avoid flaky CI
 
 ### E2E Tests
 
@@ -523,14 +664,14 @@ Access to the tmux session is equivalent to full agent access. An attacker who c
 - Send keystrokes to agent processes
 - Inspect agent environment variables
 
-This is mitigated by tmux's default socket security: the socket lives in `/tmp/tmux-<uid>/` with `0700` directory permissions, accessible only to the running user. `TMUX_TMPDIR` is explicitly unset (D-08) to prevent inherited misconfigurations.
+This is mitigated by tmux's default socket security: the socket lives in `/tmp/tmux-<uid>/` with `0700` directory permissions, accessible only to the running user. `TMUX_TMPDIR` is explicitly unset (D-09) to prevent inherited misconfigurations.
 
 ### Credential Handling
 
 - **Environment variables:** Agent credentials (GitHub tokens, bridge tokens) are passed via tmux's `-e KEY=VALUE` flag, NOT as shell string interpolation. This prevents secrets from appearing in `#{pane_start_command}` metadata or `ps` output.
 - **Scrollback:** Agent output may contain sensitive information in error traces. This is inherent to the observability requirement — you cannot observe agents without seeing their output. The 50,000-line scrollback buffer persists until the session is destroyed.
 - **Post-mortem windows:** Dead panes from `bm stop` retain scrollback. On full `bm start`, the entire session is destroyed (LIFE-01), clearing all dead panes. On single-member restarts, dead windows are removed before creating new ones. For explicit cleanup, operators can run `tmux -L botminter kill-session -t bm-<team>`.
-- **Config file:** Written with `0600` permissions via atomic write. The `~/.botminter/` directory should be `0700` (same as `~/.ssh/`).
+- **Config file:** Written with `0600` permissions via atomic write. The `~/.botminter/` directory is created with `0700` permissions by `config::config_dir()` (the existing helper used throughout the codebase). `TmuxConfig::ensure_written()` uses this same helper, so directory permission enforcement is handled by the shared code path.
 
 ### Socket Security
 
@@ -595,21 +736,21 @@ sequenceDiagram
 
 | Requirement | Acceptance Criteria | Implementation Step | Verification Status |
 |-------------|--------------------|--------------------|---------------------|
-| TMUX-01 | AC-03 | STEP-01, STEP-03 | Pending |
-| TMUX-02 | AC-01 | STEP-03, STEP-04 | Pending |
-| TMUX-03 | AC-02 | STEP-01 | Pending |
-| TMUX-04 | AC-03 | STEP-01, STEP-03 | Pending |
-| SESS-01 | AC-03 | STEP-03 | Pending |
-| SESS-02 | AC-03 | STEP-02, STEP-03 | Pending |
-| SESS-03 | AC-04 | STEP-03 | Pending |
-| SESS-04 | AC-05 | STEP-03 | Pending |
-| LIFE-01 | AC-06 | STEP-03 | Pending |
-| LIFE-02 | AC-07 | STEP-03 | Pending |
-| LIFE-03 | AC-08 | STEP-02, STEP-03 | Pending |
-| LIFE-04 | AC-09 | STEP-03 | Pending |
-| UX-01 | AC-10 | STEP-04 | Pending |
-| UX-02 | AC-11 | STEP-04 | Pending |
-| UX-03 | AC-11 | STEP-04 | Pending |
-| BRAND-01 | AC-12 | STEP-01, STEP-04 | Pending |
-| BRAND-02 | AC-13 | STEP-01, STEP-04 | Pending |
-| BRAND-03 | AC-12 | STEP-01, STEP-04 | Pending |
+| TMUX-01 | AC-03 | STORY-01, STORY-03 | Pending |
+| TMUX-02 | AC-01 | STORY-03, STORY-04 | Pending |
+| TMUX-03 | AC-02 | STORY-01 | Pending |
+| TMUX-04 | AC-03, AC-15 | STORY-01, STORY-03 | Pending |
+| SESS-01 | AC-03 | STORY-03 | Pending |
+| SESS-02 | AC-03 | STORY-02, STORY-03 | Pending |
+| SESS-03 | AC-04 | STORY-03 | Pending |
+| SESS-04 | AC-05 | STORY-03 | Pending |
+| LIFE-01 | AC-06 | STORY-03 | Pending |
+| LIFE-02 | AC-07a, AC-07b | STORY-03 | Pending |
+| LIFE-03 | AC-08, AC-18 | STORY-02, STORY-03 | Pending |
+| LIFE-04 | AC-09 | STORY-03 | Pending |
+| UX-01 | AC-10, AC-14, AC-19 | STORY-04 | Pending |
+| UX-02 | AC-11 | STORY-04 | Pending |
+| UX-03 | AC-11 | STORY-04 | Pending |
+| BRAND-01 | AC-12, AC-17 | STORY-01, STORY-04 | Pending |
+| BRAND-02 | AC-13 | STORY-01, STORY-04 | Pending |
+| BRAND-03 | AC-12 | STORY-01, STORY-04 | Pending |
