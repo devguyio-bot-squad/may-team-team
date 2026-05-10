@@ -360,20 +360,17 @@ Inform user about generated tasks and next steps.
 
 After reporting results, you MUST:
 
-1. **Open a PR** on the team repo with the task files, linked to the story issue. The PR title should reference the story (e.g., `[#42] Tasks: Add data models`). The PR body should list the tasks produced and link to the catalog README.
+1. **Open a PR** on the team repo with the task files, linked to the story issue — OR, if a PR already exists from a previous story in this session, push to the same branch and update the PR body to include the new story's tasks. Use a single PR per session, not one per story. The PR title should reference the epic (e.g., `[#1] Tasks: Tmux agent sessions`). The PR body should list all stories decomposed and link to each catalog README.
 2. **Move the story issue** to `human:po:plan-review` using the `status-workflow` skill.
-3. **Inform the user** that the PR is open and the story is in plan-review.
+3. **Inform the user** that the PR is open (or updated) and the story is in plan-review.
 
 **Skill Chaining (interactive mode):**
 
 - You MUST ask the user whether to proceed with the next story or stop to review the PR first
 - If the user chooses to stop: you MUST end the skill
 - If the user chooses to continue in this session:
-  - You MUST wait for the user to review and approve the tasks before proceeding
-  - You MUST check whether the task PR is still open; if so, you MUST ask the user for confirmation before merging
-  - You MUST merge the PR using the `github-project` skill only after explicit user confirmation
-  - You MUST move the story to `eng:dev:implement` after the PR is merged
-  - For PDD plans: you MUST offer to decompose the next story, repeating the same pattern (generate tasks → PR → plan-review → merge → next story)
+  - For PDD plans: you MUST offer to decompose the next story. Subsequent stories commit to the same branch and PR — no new PR is created.
+  - When all stories are decomposed (or the user stops), the single PR contains all task files from the session
 
 **Constraints (auto mode):**
 - You MUST write a completion summary to the catalog README
