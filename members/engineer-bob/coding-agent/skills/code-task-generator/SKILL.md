@@ -50,6 +50,63 @@ This skill supports two runtime modes, determined by the context in which it is 
 - When multiple approaches exist, select the most appropriate and document why in the catalog README
 - Provide comprehensive summaries at completion
 
+## Adversarial Review
+
+After task files are produced (Step 6), you MUST spawn adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer adopts a distinct professional persona and reviews the task decomposition holistically from that viewpoint — they apply their full professional judgment, not a narrow topic checklist. The reviewers are internal to this skill — they are not separate hats.
+
+**Task Decomposition personas (3 reviewers):**
+
+| Persona | Review lens |
+|---------|-------------|
+| **Staff Engineer** | Reviews as a senior IC who will own the technical quality of this system long-term. Applies holistic judgment across architecture, security, maintainability, performance, and production-readiness. Connects decisions to their downstream implications — a design choice that's architecturally clean but operationally fragile gets flagged as one issue, not missed because it falls between two isolated topic reviews. |
+| **UX Engineer** | Acts as the voice of every user persona who will interact with this feature — end users, operators, admins. Evaluates whether users can find it, learn it, use it, and recover from mistakes. Catches documentation gaps (missing sections, thin content, incomplete guides), poor error messages, CLI ergonomics issues, onboarding friction, and discoverability problems. The test: "when this ships, will users succeed without hand-holding?" For task decompositions, also evaluates whether user-facing behavior is decomposed in a way that enables early UX validation and doesn't defer all user-visible quality to the final task. |
+| **QE Engineer** | Reviews as the engineer who will verify this feature works end-to-end. Evaluates whether the design is testable, acceptance criteria are verifiable in Given-When-Then form, edge cases are covered, the test strategy catches regressions, and observability supports debugging failures. Catches untestable requirements, missing test categories, and gaps between ACs and actual verification. |
+
+**Review feedback format:**
+
+Each reviewer MUST produce structured feedback in this format:
+
+````markdown
+### Review: [Persona]
+
+**Verdict:** PASS | REVISE | BLOCK (PASS = no issues or minor issues only; REVISE = major issues present but resolvable; BLOCK = blocker issues that prevent proceeding)
+
+**Issues:**
+1. [SEVERITY: blocker|major|minor] — [description]
+   **Location:** [task file / section / criterion reference]
+   **Suggestion:** [concrete fix]
+
+2. ...
+
+**Strengths:** [what's done well — retained across revisions]
+````
+
+**All-PASS fast path:** If all 3 reviewers return PASS with no issues, skip iteration rounds and proceed directly to the next step. In interactive mode, present the clean verdicts to the human for acknowledgment. In auto mode, log the clean review in the catalog README Decisions section.
+
+**Overlap guidance:** Persona-based reviewers may flag the same concern from different angles. This is expected and is a signal of severity — if both the Staff Engineer and QE flag weak acceptance criteria, that issue is more important than one flagged by a single reviewer. In auto mode, overlapping issues are addressed once (not duplicated); in interactive mode, all feedback is presented and the human decides.
+
+**Iteration protocol:**
+
+| Mode | Behavior |
+|------|----------|
+| **Interactive** | Present consolidated feedback from all reviewers to the human. The human selectively addresses issues (e.g., "fix #1 and #3, skip #2"). Revise only the items the human chooses to address. The human decides when the artifact is ready. |
+| **Auto** | Iterate up to 3 rounds without human input. Round 1: initial review — all issues surfaced. Round 2: targeted revision — address only blocker and major issues, re-review changed sections plus regression check. Round 3: final pass — if blockers remain, reject the decomposition (see rejection behavior below). |
+
+**Constraints:**
+- You MUST spawn 3 reviewer sub-agents for every task decomposition
+- Each sub-agent MUST adopt a distinct persona from the persona table above
+- Persona-based reviewers review holistically — do NOT constrain them to a narrow topic checklist. The persona description defines their lens, not their scope.
+- Sub-agents MUST produce feedback in the structured format specified above
+- You MUST NOT skip the adversarial review for any task decomposition
+- In interactive mode: you MUST present all reviewer feedback before asking the human which issues to address
+- In interactive mode: you MUST NOT auto-dismiss any reviewer feedback — only the human decides what to address or dismiss
+- In auto mode: you MUST NOT exceed 3 review-revision rounds
+- In auto mode: in round 2, you MUST only address issues with severity `blocker` or `major`
+- **Rejection behavior (auto mode):** After round 3, if any verdict is BLOCK, you MUST reject the decomposition: post a comment on the story issue listing all remaining blocker issues, move the story to `po:backlog` using the `status-workflow` skill, and exit the skill without proceeding to Step 8
+- You MUST revise the task files in-place after addressing feedback (do not create new copies)
+- When task files are revised, you MUST also update the catalog README to reflect any changes to task titles, complexity assessments, requirement traceability, or acceptance criteria
+- If revisions are made, the revised task files are included in the commit at Step 8 (Finalize)
+
 ## Steps
 
 ### 1. Detect Input Mode
@@ -233,14 +290,39 @@ Create task files, catalog README, and organize output.
 **Index update:**
 - You MUST update `team/specs/index.md` with an entry for this story. Create the file if it doesn't exist. Each entry should include the issue number, title, parent epic reference, project, and link to the task directory.
 
-**Commit after generation:**
-- After all task files, the catalog README, and index update are generated, you MUST commit them to version control
+### 7. Adversarial Review
+
+Run the adversarial review process on the generated task files before reporting results or opening a PR.
+
+**Constraints (all modes):**
+- After producing the task files (Step 6), you MUST run the adversarial review process (see Adversarial Review section)
+- You MUST spawn 3 reviewer sub-agents in parallel, one for each persona: Staff Engineer, UX Engineer, QE Engineer
+- Each reviewer receives all `.code-task-NN.md` files, the catalog README, the parent story context (design doc, requirements doc, story description from the plan — whichever of these exist for the current mode; in description mode, provide the original story description and any codebase context gathered in Step 4), and the verification results from Step 4 (if PDD mode)
+- Reviewers evaluate the task decomposition holistically from their persona's viewpoint
+
+**Constraints (interactive mode):**
+- You MUST present consolidated feedback from all 3 reviewers to the human
+- You MUST NOT auto-dismiss any reviewer feedback — only the human decides what to address or dismiss
+- After the human selects which issues to address, revise the task files in-place
+- You MUST complete the adversarial review before proceeding to Step 8 (Finalize)
+
+**Constraints (auto mode):**
+- Follow the auto-mode iteration protocol defined in the Adversarial Review section (up to 3 rounds, severity filtering, rejection on persistent blockers)
+- You MUST complete the adversarial review before proceeding to Step 8 (Finalize)
+
+### 8. Finalize
+
+Commit task files, externalize to GitHub, and invoke ADR skill if needed.
+
+**Commit:**
+- You MUST commit all task files, the catalog README, and index update to version control
+- If revisions were made during adversarial review (Step 7), the commit includes those revisions
 - Commit message pattern: `docs(specs): generate tasks for [story reference]`
 - On failure and retry, the skill MUST detect existing task files and resume — do not overwrite existing completed tasks
 
 **Task externalization:**
 
-After generating task files, handle externalization based on labels on the parent story issue:
+After committing, handle externalization based on labels on the parent story issue:
 
 | Label | Behavior | GitHub Impact |
 |-------|----------|---------------|
@@ -260,9 +342,9 @@ After generating task files, handle externalization based on labels on the paren
 - Pass the decision title and context (including the story reference and task context where the decision emerged) to the ADR skill
 - After the ADR skill returns the `ADR-NNNN` ID, reference it in the catalog README's Decisions section
 - In interactive mode: the ADR skill presents the proposed ADR to the user for review before writing
-- In auto mode: the ADR skill generates the ADR autonomously — the ADR is committed alongside the task files in the commit-after-generation step
+- In auto mode: the ADR skill generates the ADR autonomously — the ADR is committed alongside the task files
 
-### 7. Report Results
+### 9. Report Results
 
 Inform user about generated tasks and next steps.
 
