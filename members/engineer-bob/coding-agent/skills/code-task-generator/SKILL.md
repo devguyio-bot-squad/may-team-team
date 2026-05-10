@@ -40,12 +40,12 @@ This skill supports two runtime modes, determined by the context in which it is 
 - Present proposed actions and ask for confirmation before proceeding
 - When multiple approaches exist, explain pros/cons and ask for user preference
 - Ask clarifying questions about ambiguous requirements
-- Present task breakdown for approval before generating files (Step 4)
+- Present task breakdown for approval before generating files (Step 5)
 - Allow user to request modifications to the breakdown
 
 **Auto mode rules:**
 - Execute all actions autonomously without user confirmation
-- Skip Step 4 (user approval of task breakdown) — proceed directly from planning to generation
+- Skip Step 5 (user approval of task breakdown) — proceed directly from verification to generation
 - Document all decisions about decomposition granularity, task sequencing, and complexity assessment in the catalog README
 - When multiple approaches exist, select the most appropriate and document why in the catalog README
 - Provide comprehensive summaries at completion
@@ -117,7 +117,45 @@ If multiple epic-scope signals are present:
 - In auto mode: you MUST create an epic issue and link the story before switching to PDD
 - In auto mode: you MUST log the scope detection rationale in the epic body before switching
 
-### 4. Plan Tasks
+### 4. Verify Against Codebase
+
+Independently verify claims in the design artifacts against the actual project codebase before planning tasks.
+
+**Why this step exists:** PDD artifacts (design.md, plan.md) make claims about the codebase — file paths, function signatures, existing patterns, module structure, helper functions. These claims may be stale, inaccurate, or based on assumptions. Tasks generated from unverified claims produce incorrect implementation guidance that wastes developer time.
+
+**Constraints (PDD mode — required):**
+- You MUST read the actual source files referenced in the design document and story description
+- You MUST verify that claimed file paths exist and contain what the design describes
+- You MUST verify that claimed function signatures, struct definitions, and type names match the current codebase
+- You MUST verify that claimed patterns (e.g., "atomic write pattern in module X", "helper function Y") actually exist and work as described
+- You MUST verify that claimed module structure and import paths are accurate
+- You MUST form your own implementation approach independently — as if you were told "implement this objective" without the PDD artifacts — and then compare it against the design's proposed approach
+- You MUST document all discrepancies found between the design artifacts and the actual codebase
+- You MUST use the verified understanding of the codebase — not the PDD claims — when generating task files in subsequent steps
+- You SHOULD check for existing patterns in the codebase that the design may have missed or mischaracterized (e.g., two different atomic write patterns where the design assumes one)
+- You SHOULD verify that helper functions referenced by the design (e.g., `config_dir()`) have the return types and behavior the design assumes
+
+**Constraints (PDD mode — reporting):**
+- In interactive mode: you MUST present a summary of verification results before proceeding to Step 5, listing confirmed claims and discrepancies found
+- In auto mode: you MUST document verification results in the catalog README's Decisions section
+
+**Verification checklist:**
+
+| Check | How |
+|-------|-----|
+| File paths exist | Read each source file referenced in the design |
+| Function signatures match | Compare actual signatures against design's claimed signatures |
+| Module structure is accurate | List actual modules and compare against design's description |
+| Helper functions behave as claimed | Read the implementation, verify return types and side effects |
+| Existing patterns are correctly described | Find actual usage sites and compare |
+| No better existing patterns exist | Search for similar functionality already in the codebase |
+
+**Constraints (description mode):**
+- This step is OPTIONAL for description mode since there are no PDD artifacts to verify
+- You SHOULD still read relevant source files to understand the codebase context before planning tasks
+- You MAY skip this step if the description is self-contained and does not reference existing code
+
+### 5. Plan Tasks
 
 Present task breakdown for user approval before generation.
 
@@ -125,15 +163,16 @@ Present task breakdown for user approval before generation.
 - You MUST analyze content to identify logical sub-tasks for implementation
 - You MUST present concise one-line summary for each planned code task
 - You MUST show proposed task sequence and dependencies
+- You MUST incorporate any discrepancies found during verification (Step 4) into the task descriptions
 - You MUST ask user to approve the plan before proceeding
 - You MUST allow user to request modifications to the task breakdown
 - You MUST NOT proceed to generate actual code task files until user explicitly approves
 
 **Constraints (auto mode):**
-- You MUST skip this step entirely — proceed directly to Step 5 (Generate Tasks)
-- Decomposition decisions MUST be documented in the catalog README (Step 5)
+- You MUST skip this step entirely — proceed directly to Step 6 (Generate Tasks)
+- Decomposition decisions and verification results MUST be documented in the catalog README (Step 6)
 
-### 5. Generate Tasks
+### 6. Generate Tasks
 
 Create task files, catalog README, and organize output.
 
@@ -223,7 +262,7 @@ After generating task files, handle externalization based on labels on the paren
 - In interactive mode: the ADR skill presents the proposed ADR to the user for review before writing
 - In auto mode: the ADR skill generates the ADR autonomously — the ADR is committed alongside the task files in the commit-after-generation step
 
-### 6. Report Results
+### 7. Report Results
 
 Inform user about generated tasks and next steps.
 
