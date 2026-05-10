@@ -94,13 +94,14 @@ Summary: 5 issues (4 open, 1 closed) | 2 Epics, 3 Tasks
 | Kind | GitHub Issue Type |
 |------|-------------------|
 | `epic` | Epic |
-| `story` | Task |
+| `story` | Story |
+| `task` | Task |
 | `bug` | Bug |
 
 **Parameters:**
 - `--title` (required) - Issue title
 - `--body` (required) - Issue description (markdown)
-- `--kind` (required) - `epic`, `story`, or `bug`
+- `--kind` (required) - `epic`, `story`, `task`, or `bug`
 - `--parent` (optional) - Parent issue number (creates native sub-issue)
 - `--milestone` (optional) - Milestone name
 - `--assignee` (optional) - GitHub username
@@ -115,12 +116,18 @@ bash scripts/create-issue.sh \
   --body "Implement OAuth 2.0 authentication..." \
   --kind epic
 
-# Story under epic (creates Task type, linked as sub-issue)
+# Story under epic (creates Story type, linked as sub-issue)
 bash scripts/create-issue.sh \
   --title "Add Google OAuth provider" \
   --body "Implement Google OAuth..." \
   --kind story \
   --parent 15
+
+# Task (creates Task type, direct implementation)
+bash scripts/create-issue.sh \
+  --title "Fix config path resolution" \
+  --body "Update config_dir() to handle XDG_CONFIG_HOME..." \
+  --kind task
 
 # Bug (creates Bug type)
 bash scripts/create-issue.sh \
@@ -395,13 +402,13 @@ bash scripts/query-issues.sh --type issue-type --label "Bug"
 - `--parent` (required) - Parent issue number
 - `--title` (for create) - Sub-issue title
 - `--body` (for create, optional) - Sub-issue description
-- `--type` (for create, optional) - Issue type name (default: `Task`). Available: `Task`, `Bug`, `Epic`
+- `--type` (for create, optional) - Issue type name (default: `Story`). Available: `Story`, `Task`, `Bug`, `Epic`
 
 **Usage:**
 
 Claude will run:
 ```bash
-# Create a sub-issue (defaults to Task type)
+# Create a sub-issue (defaults to Story type)
 bash scripts/subtask-ops.sh \
   --action create \
   --parent 42 \
@@ -546,7 +553,7 @@ mutation {
 
 **Actions:**
 1. Claude runs `create-issue.sh` with `--kind story --parent 15`
-2. Creates Task issue type linked as native sub-issue of #15
+2. Creates Story issue type linked as native sub-issue of #15
 3. Sets initial status to `po:triage`
 4. Posts attribution comment
 

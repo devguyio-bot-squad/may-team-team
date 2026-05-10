@@ -55,7 +55,7 @@ Issues are GitHub issues on the **team repo** (not the project repo). The `githu
 |-------|---------------|-------------|
 | `title` | Issue title | Concise, descriptive issue title |
 | `state` | Issue state | `open` or `closed` |
-| `type` | Native issue type | Epic, Task (story), Bug |
+| `type` | Native issue type | Epic, Story, Task, Bug |
 | `assignee` | Issue assignee | GitHub username or unassigned |
 | `milestone` | Issue milestone | Milestone name or none |
 | `parent` | Native sub-issue relationship | Links stories to their parent epic |
@@ -72,7 +72,8 @@ Issue classification uses GitHub's native issue types:
 | Issue Type | Kind | Description |
 |------------|------|-------------|
 | **Epic** | `epic` | A large body of work spanning multiple stories |
-| **Task** | `story` | A single deliverable unit of work (sub-issue of an Epic, or standalone) |
+| **Story** | `story` | A deliverable unit of work decomposed into tasks (sub-issue of an Epic, or standalone) |
+| **Task** | `task` | Direct implementation in a Ralph loop — no decomposition step |
 | **Bug** | `bug` | A defect requiring investigation and fix |
 
 Stories are linked to epics as native sub-issues.
