@@ -4,3 +4,4 @@ This file catalogs all work items and their planning artifacts. Each entry links
 
 | Issue | Type | Status | Artifacts |
 |-------|------|--------|-----------|
+| [#1 Tmux agent sessions](https://github.com/devguyio-bot-squad/may-team-team/issues/1) | Epic | plan-review | [specs/botminter/1-tmux-agent-sessions/](botminter/1-tmux-agent-sessions/) |
