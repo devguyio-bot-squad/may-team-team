@@ -284,16 +284,14 @@ After reporting results, you MUST:
 
 **Skill Chaining (interactive mode):**
 
-After the PR is opened, you MUST offer to continue:
-
-- Ask the user: "Would you like to proceed with the next story, or stop here and review the PR first?"
-- If the user wants to **stop here**: end the skill.
-- If the user wants to **continue in this session**:
-  1. The user reviews the tasks during the conversation. When they approve:
-  2. Check if the task PR is still open. If so, confirm with the user: "The task PR needs to be merged. Should I merge it now?"
-  3. If confirmed, merge the PR using the `github-project` skill.
-  4. Move the story to `eng:dev:implement`.
-  5. If working through a PDD plan, offer to decompose the next story — repeating the same pattern (generate tasks → PR → plan-review → merge → next story).
+- You MUST ask the user whether to proceed with the next story or stop to review the PR first
+- If the user chooses to stop: you MUST end the skill
+- If the user chooses to continue in this session:
+  - You MUST wait for the user to review and approve the tasks before proceeding
+  - You MUST check whether the task PR is still open; if so, you MUST ask the user for confirmation before merging
+  - You MUST merge the PR using the `github-project` skill only after explicit user confirmation
+  - You MUST move the story to `eng:dev:implement` after the PR is merged
+  - For PDD plans: you MUST offer to decompose the next story, repeating the same pattern (generate tasks → PR → plan-review → merge → next story)
 
 **Constraints (auto mode):**
 - You MUST write a completion summary to the catalog README

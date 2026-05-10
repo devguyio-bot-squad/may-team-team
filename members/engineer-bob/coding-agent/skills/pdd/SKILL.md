@@ -624,18 +624,16 @@ After presenting the summary, you MUST:
 
 **Skill Chaining (interactive mode only):**
 
-After the PR is opened, you MUST offer to continue with story creation:
-
-- Ask the user: "Would you like to proceed with creating story issues and decomposing tasks now, or stop here and review the PR first?"
-- If the user wants to **stop here**: end the skill. The user will review and merge the PR externally. The board scanner picks up the approved epic at `eng:lead:breakdown`.
-- If the user wants to **continue in this session**:
-  1. The user reviews the plan during the conversation. When they approve:
-  2. Check if the spec PR is still open. If so, confirm with the user: "The spec PR needs to be merged before breakdown. Should I merge it now?"
-  3. If confirmed, merge the PR using the `github-project` skill.
-  4. Move the epic to `eng:lead:breakdown`.
-  5. Invoke the `code-task-generator` skill via the Skill tool (`/code-task-generator`) for each story. You MUST use the Skill tool — do NOT manually read the skill's SKILL.md and improvise the steps. Pass the plan path, story number, and project as arguments (e.g., `/code-task-generator input: <plan-path>, story_number: <N>, project: <project>`). Each `STORY-NN` maps 1:1 to a story issue.
-  6. For each story, the code-task-generator follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
-  7. You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator.
+- You MUST ask the user whether to proceed with creating story issues and decomposing tasks, or stop to review the PR first
+- If the user chooses to stop: you MUST end the skill. The board scanner picks up the approved epic at `eng:lead:breakdown`.
+- If the user chooses to continue in this session:
+  - You MUST wait for the user to review and approve the plan before proceeding
+  - You MUST check whether the spec PR is still open; if so, you MUST ask the user for confirmation before merging
+  - You MUST merge the PR using the `github-project` skill only after explicit user confirmation
+  - You MUST move the epic to `eng:lead:breakdown` after the PR is merged
+  - You MUST invoke the `code-task-generator` skill via the Skill tool (`/code-task-generator`) for each story. You MUST use the Skill tool — do NOT manually read the skill's SKILL.md and improvise the steps. Pass the plan path, story number, and project as arguments (e.g., `/code-task-generator input: <plan-path>, story_number: <N>, project: <project>`). Each `STORY-NN` maps 1:1 to a story issue.
+  - You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator
+  - For each story, the code-task-generator follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`
 - If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
   - **All stories first:** Create all story issues from the plan, then decompose each story into tasks
   - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
