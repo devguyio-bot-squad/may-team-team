@@ -42,12 +42,14 @@ human:po:accept (human gate)
 done
 ```
 
-## Story Lifecycle (7 statuses)
+## Story Lifecycle (8 statuses)
 
 ```
 eng:lead:plan
     |
 human:po:plan-review (human gate)
+    |
+eng:lead:breakdown
     |
 eng:dev:implement
     |
