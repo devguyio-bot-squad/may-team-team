@@ -17,7 +17,7 @@ Fifteen specialized hats are available for different phases of work. Board scann
 | Hat | Purpose |
 |-----|---------|
 | **po_gate** | Handles all human:po:* statuses — triage, backlog, plan-review, accept |
-| **lead_plan-create** | Creates planning artifacts — PDD for epics, code-task-generator for stories |
+| **lead_plan-create** | Creates planning artifacts — epic-mgmt (PDD) for epics, story-mgmt for stories |
 | **lead_plan-review** | Zero-trust adversarial quality gate for planning artifacts |
 | **lead_breakdown** | Externalizes approved plans — story issues from epics, task issues from stories |
 | **lead_monitor** | Monitors epic progress, advances to acceptance when all stories done |
