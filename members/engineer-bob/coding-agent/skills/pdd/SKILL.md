@@ -21,7 +21,9 @@ All catalogable entities produced by this skill receive stable IDs for cross-ref
 - **project** (required): Which BotMinter project (code repository) this epic is for. Corresponds to a directory under `projects/` in the workspace
 - **epic_name** (optional): A short, descriptive name for the epic. If not provided, will be generated from the rough idea
 
-The artifact directory (`{epic_dir}`) is derived, not user-specified: `team/specs/{project}/{epic_name}/`
+The artifact directory (`{epic_dir}`) is derived, not user-specified: `team/specs/{project}/{issue#}-{epic_name}/`
+
+The `{issue#}` is the GitHub Epic issue number, created in Step 1.
 
 **Constraints for parameter acquisition:**
 - You MUST ask for all required parameters upfront in a single prompt rather than one at a time
@@ -32,7 +34,7 @@ The artifact directory (`{epic_dir}`) is derived, not user-specified: `team/spec
   - Other methods: You SHOULD be open to other ways the user might want to provide the idea
 - You MUST use appropriate tools to access content based on the input method
 - You MUST confirm successful acquisition of all parameters before proceeding
-- If epic_name is not provided, You MUST generate a short kebab-case name from the rough idea, prefixed with the current date in YYYY-MM-DD format (e.g., "2026-01-30-template-manager", "2026-01-30-auth-system")
+- If epic_name is not provided, You MUST generate a short kebab-case name from the rough idea (e.g., "template-manager", "auth-system")
 - You SHOULD save the acquired rough idea to a consistent location for use in subsequent steps
 - You MUST NOT overwrite the existing epic directory because this could destroy previous work and cause data loss
 - You MUST ask the operator for a different epic_name if the generated default directory already exists and has contents from a previous iteration
@@ -72,7 +74,7 @@ This skill supports crash recovery and resumability. At the start of each run, c
 
 | Phase | Step | Completion Signal |
 |-------|------|-------------------|
-| Planning setup | 1 | `{epic_dir}/` directory exists with `rough-idea.md` |
+| Planning setup | 1 | `{epic_dir}/` directory exists with `rough-idea.md` containing `epic_issue:` frontmatter |
 | Idea-honing | 3 | `{epic_dir}/idea-honing.md` has Q-NN entries with answers |
 | Research | 4 | `{epic_dir}/research/` directory contains R-NN files |
 | Requirements | 6 | `{epic_dir}/requirements.md` exists with CATEGORY-NN entries |
@@ -201,11 +203,12 @@ Set up a directory structure to organize all planning artifacts created during t
 - You MUST ensure a GitHub Epic issue exists for this work item. If the skill was invoked with an existing issue number (e.g., from a board work item), use that issue. Otherwise, create a new Epic issue using the `github-project` skill with a title derived from the rough idea and a body containing the rough idea text. The issue's initial status MUST be set to `human:po:triage`. The issue number becomes `{issue#}` for the directory name.
 - You MUST create the epic directory `team/specs/{project}/{issue#}-{epic_name}/` if it doesn't already exist
 - You MUST create the following files:
-  - {epic_dir}/rough-idea.md (containing the provided rough idea)
+  - {epic_dir}/rough-idea.md (containing the provided rough idea, with frontmatter field `epic_issue: <number>`)
   - {epic_dir}/idea-honing.md (for requirements clarification)
 - You MUST create the following subdirectories:
   - {epic_dir}/research/ (directory for research notes)
-- In interactive mode: you MUST notify the user when the structure has been created
+- You MUST update `team/specs/index.md` with a new entry for this epic. Create the file if it doesn't exist. Each entry should include the issue number, title, project, and link to the spec directory.
+- In interactive mode: you MUST notify the user when the structure has been created and the epic issue has been filed
 - You MUST inform the user that all planning artifacts will remain available throughout the process
 - You MUST explain that this will ensure all planning artifacts remain in context throughout the process
 
@@ -624,16 +627,18 @@ After presenting the summary, you MUST:
 
 **Skill Chaining (interactive mode only):**
 
-- You MUST ask the user whether to proceed with creating story issues and decomposing tasks, or stop to review the PR first
-- If the user chooses to stop: you MUST end the skill. The board scanner picks up the approved epic at `eng:lead:breakdown`.
-- If the user chooses to continue in this session:
-  - You MUST wait for the user to review and approve the plan before proceeding
-  - You MUST check whether the spec PR is still open; if so, you MUST ask the user for confirmation before merging
-  - You MUST merge the PR using the `github-project` skill only after explicit user confirmation
-  - You MUST move the epic to `eng:lead:breakdown` after the PR is merged
-  - You MUST invoke the `code-task-generator` skill via the Skill tool (`/code-task-generator`) for each story. You MUST use the Skill tool — do NOT manually read the skill's SKILL.md and improvise the steps. Pass the plan path, story number, and project as arguments (e.g., `/code-task-generator input: <plan-path>, story_number: <N>, project: <project>`). Each `STORY-NN` maps 1:1 to a story issue.
-  - You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator
-  - For each story, the code-task-generator follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`
+After the PR is opened, you MUST offer to continue with story creation:
+
+- Ask the user: "Would you like to proceed with creating story issues and decomposing tasks now, or stop here and review the PR first?"
+- If the user wants to **stop here**: end the skill. The user will review and merge the PR externally. The board scanner picks up the approved epic at `eng:lead:breakdown`.
+- If the user wants to **continue in this session**:
+  1. The user reviews the plan during the conversation. When they approve:
+  2. Check if the spec PR is still open. If so, confirm with the user: "The spec PR needs to be merged before breakdown. Should I merge it now?"
+  3. If confirmed, merge the PR using the `github-project` skill.
+  4. Move the epic to `eng:lead:breakdown`.
+  5. Load the `code-task-generator` skill and chain into it for each story (each `STORY-NN` maps 1:1 to a story issue).
+  6. For each story, the code-task-generator follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
+  7. You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator.
 - If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
   - **All stories first:** Create all story issues from the plan, then decompose each story into tasks
   - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
@@ -690,7 +695,7 @@ I notice you have several additional search tools available. Should I incorporat
 I've completed the transformation of your rough idea into a detailed design with a story breakdown. Here's what was created:
 
 ## Directory Structure
-- team/specs/my-project/template-feature/
+- team/specs/my-project/15-template-feature/
   - rough-idea.md (your initial concept)
   - idea-honing.md (Q-01 through Q-12 — our requirements clarification)
   - requirements.md (AUTH-01 through AUTH-03, TMPL-01 through TMPL-05, SHARE-01 through SHARE-02)
