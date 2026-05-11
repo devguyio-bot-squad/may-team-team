@@ -351,7 +351,7 @@ specs/
         README.md                    # Task catalog
 ```
 
-The `specs/index.md` file serves as a catalog of all work items with pointers to their artifacts.
+The `specs/index.md` file serves as a catalog of all work items with pointers to their artifacts. Artifacts are grouped by project, then by work item. The `<issue#>` prefix ties the directory to its GitHub issue.
 
 ---
 
