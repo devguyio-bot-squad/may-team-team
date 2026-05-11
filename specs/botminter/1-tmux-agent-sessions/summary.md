@@ -81,5 +81,5 @@ Key design decisions:
 
 1. Review and merge the spec PR on the team repo
 2. Create story issues from the plan (STORY-01 through STORY-04)
-3. Decompose each story into implementation tasks via the code-task-generator skill
+3. Decompose each story into implementation tasks via the story-mgmt skill
 4. Begin implementation starting with STORY-01

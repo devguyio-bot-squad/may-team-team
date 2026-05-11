@@ -1,4 +1,19 @@
-# Prompt-Driven Development
+---
+name: epic-mgmt
+description: >-
+  Manages the full epic planning lifecycle using Prompt-Driven Development
+  (PDD). Use for idea honing, requirements extraction, requirements planning,
+  research, architectural design, adversarial review, story breakdown, feature
+  planning, roadmap planning, and epic decomposition into stories. Also
+  triggers on "plan an epic", "design a feature", "run PDD", or /epic-mgmt.
+  Do NOT use for stories or tasks — use the story-mgmt skill instead.
+metadata:
+  author: botminter
+  version: 1.0.0
+  category: planning
+---
+
+# Epic Management (PDD)
 
 ## Overview
 
@@ -288,13 +303,13 @@ If 3 or more story-scope signals are present:
 
 | Mode | Behavior |
 |------|----------|
-| **Interactive** | Present the assessment to the user: explain which signals were detected, and ask whether to continue with full epic-level PDD or demote to story-level and switch to the code-task-generator skill instead |
-| **Auto** | Demote to story-level automatically — stop the PDD pipeline and invoke the code-task-generator skill with the work item as input. Log the scope detection rationale in the work item or artifact before demoting |
+| **Interactive** | Present the assessment to the user: explain which signals were detected, and ask whether to continue with full epic-level PDD or demote to story-level and switch to the story-mgmt skill instead |
+| **Auto** | Demote to story-level automatically — stop the PDD pipeline and invoke the story-mgmt skill with the work item as input. Log the scope detection rationale in the work item or artifact before demoting |
 
 **Scope detection constraints:**
 - You MUST NOT trigger scope detection before at least 3 questions have been asked and answered — insufficient context leads to false positives
 - You MUST list the specific signals detected when proposing a scope change
-- In interactive mode: you MUST NOT auto-demote — only the user decides whether to continue with PDD or switch to code-task-generator
+- In interactive mode: you MUST NOT auto-demote — only the user decides whether to continue with PDD or switch to story-mgmt
 - In auto mode: you MUST log the scope detection rationale in the artifact before demoting
 
 **Example idea-honing.md format (interactive mode):**
@@ -636,9 +651,9 @@ After the PR is opened, you MUST offer to continue with story creation:
   2. Check if the spec PR is still open. If so, confirm with the user: "The spec PR needs to be merged before breakdown. Should I merge it now?"
   3. If confirmed, merge the PR using the `github-project` skill.
   4. Move the epic to `eng:lead:breakdown`.
-  5. Load the `code-task-generator` skill and chain into it for each story (each `STORY-NN` maps 1:1 to a story issue).
-  6. For each story, the code-task-generator follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
-  7. You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into code-task-generator.
+  5. Load the `story-mgmt` skill and chain into it for each story (each `STORY-NN` maps 1:1 to a story issue).
+  6. For each story, the story-mgmt follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
+  7. You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into story-mgmt.
 - If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
   - **All stories first:** Create all story issues from the plan, then decompose each story into tasks
   - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
@@ -648,7 +663,7 @@ After the PR is opened, you MUST offer to continue with story creation:
 - You MUST NOT open a PR — the specs are committed directly to the team repo
 - You MUST move the epic issue to `human:po:plan-review` using the `status-workflow` skill
 - You MUST post a summary comment on the epic issue with links to the spec artifacts
-- You MUST NOT chain into code-task-generator or create story issues — that happens at `eng:lead:breakdown` after plan approval
+- You MUST NOT chain into story-mgmt or create story issues — that happens at `eng:lead:breakdown` after plan approval
 
 ## Artifact Summary
 

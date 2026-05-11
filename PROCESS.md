@@ -20,8 +20,8 @@ Work can begin at any granularity level without creating parent containers:
 
 | Entry Point | What Happens |
 |-------------|-------------|
-| **Epic** | Full PDD pipeline: idea → requirements → design → plan → stories → tasks |
-| **Story** | Code-task-generator decomposes into tasks, then implementation |
+| **Epic** | Full epic-mgmt (PDD) pipeline: idea → requirements → design → plan → stories → tasks |
+| **Story** | story-mgmt decomposes into tasks, then implementation |
 | **Task** | Direct implementation in a Ralph loop — no decomposition step |
 | **Bug** | Investigation → linked Story (simple or complex path) |
 
@@ -38,8 +38,8 @@ Both gates can be auto-advanced with `plan:auto` and `accept:auto` labels respec
 
 | Scope | Planning Artifacts | Planning Skill |
 |-------|-------------------|----------------|
-| Epic | requirements.md, design.md, plan.md (stories) | PDD |
-| Story | .code-task-NN.md files + catalog README | code-task-generator |
+| Epic | requirements.md, design.md, plan.md (stories) | epic-mgmt (PDD) |
+| Story | .code-task-NN.md files + catalog README | story-mgmt |
 | Task | None — task IS the unit of work | Agent runtime |
 | Bug | Investigation notes → linked Story | QE investigation |
 
@@ -147,7 +147,7 @@ The epic lifecycle passes through planning, human review, breakdown, monitoring,
 |--------|---------|-------------|
 | `human:po:triage` | PO (human) | New epic, awaiting human evaluation |
 | `human:po:backlog` | PO (human) | Accepted, prioritized, awaiting activation |
-| `eng:lead:plan` | lead | Creating planning artifacts autonomously (PDD pipeline) |
+| `eng:lead:plan` | lead | Creating planning artifacts autonomously (epic-mgmt/PDD pipeline) |
 | `human:po:plan-review` | PO (human) | Planning artifacts awaiting human review (PR or issue comment) |
 | `eng:lead:breakdown` | lead | Creating story issues from the story breakdown |
 | `eng:lead:monitor` | lead | Monitoring story execution, advances when all stories done |
@@ -158,12 +158,12 @@ The epic lifecycle passes through planning, human review, breakdown, monitoring,
 
 | Path | Trigger | Flow | Plan Review Mechanism |
 |------|---------|------|-----------------------|
-| **Interactive** | Human starts PDD conversation directly | `human:po:triage` → PDD conversation → PR opened → `human:po:plan-review` → PR merged → `eng:lead:breakdown` | PR merge = approval |
-| **Autonomous** | Agent picks up from board | `human:po:backlog` → `eng:lead:plan` → PDD autonomous → `human:po:plan-review` → issue comment approval → `eng:lead:breakdown` | Issue comment approval |
+| **Interactive** | Human starts epic-mgmt conversation directly | `human:po:triage` → epic-mgmt conversation → PR opened → `human:po:plan-review` → PR merged → `eng:lead:breakdown` | PR merge = approval |
+| **Autonomous** | Agent picks up from board | `human:po:backlog` → `eng:lead:plan` → epic-mgmt autonomous → `human:po:plan-review` → issue comment approval → `eng:lead:breakdown` | Issue comment approval |
 
 **Interactive path:** The human and agent collaborate on planning in a conversation. The epic issue is created at the start (in `human:po:triage`). When planning is complete, a PR is opened with the spec artifacts linked to the epic, and the issue moves directly to `human:po:plan-review` — skipping `eng:lead:plan` since the human was part of the planning. Merging the PR = plan approval, which advances the issue to `eng:lead:breakdown`.
 
-**Autonomous path:** The agent picks up the epic from `human:po:backlog`, moves it to `eng:lead:plan`, runs the PDD pipeline autonomously with adversarial review, then moves to `human:po:plan-review`. The human reviews via issue comments. Approval advances to `eng:lead:breakdown`.
+**Autonomous path:** The agent picks up the epic from `human:po:backlog`, moves it to `eng:lead:plan`, runs the epic-mgmt (PDD) pipeline autonomously with adversarial review, then moves to `human:po:plan-review`. The human reviews via issue comments. Approval advances to `eng:lead:breakdown`.
 
 ```mermaid
 stateDiagram-v2
@@ -196,11 +196,11 @@ Adversarial review is internal to the `eng:lead:plan` status (autonomous path on
 
 ## Story Lifecycle (8 Statuses)
 
-Stories share `eng:lead:plan`, `human:po:plan-review`, `eng:lead:breakdown`, and `human:po:accept` with the epic lifecycle. At `eng:lead:plan`, the lead hat checks the issue type — epic triggers PDD, story triggers code-task-generator. At `eng:lead:breakdown`, the lead hat externalizes tasks from the approved task catalog (mirroring how epics externalize stories from the approved plan):
+Stories share `eng:lead:plan`, `human:po:plan-review`, `eng:lead:breakdown`, and `human:po:accept` with the epic lifecycle. At `eng:lead:plan`, the lead hat checks the issue type — epic triggers epic-mgmt (PDD), story triggers story-mgmt. At `eng:lead:breakdown`, the lead hat externalizes tasks from the approved task catalog (mirroring how epics externalize stories from the approved plan):
 
 | Status | Persona | Description |
 |--------|---------|-------------|
-| `eng:lead:plan` | lead | Creating planning artifacts (code-task-generator for stories) |
+| `eng:lead:plan` | lead | Creating planning artifacts (story-mgmt for stories) |
 | `human:po:plan-review` | PO (human) | Planning artifacts awaiting human review |
 | `eng:lead:breakdown` | lead | Externalizing tasks from approved task catalog |
 | `eng:dev:implement` | dev | TDD implementation (red-green-refactor-review cycle) |
@@ -296,7 +296,7 @@ The following statuses require explicit human approval via GitHub issue comments
 |------|--------|-----------------|------------|
 | Triage | `human:po:triage` | New issue for evaluation | -- |
 | Backlog | `human:po:backlog` | Prioritized issue for activation | -- |
-| Plan approval | `human:po:plan-review` | Planning artifacts (PDD output or code-task catalog) | `plan:auto` |
+| Plan approval | `human:po:plan-review` | Planning artifacts (epic-mgmt output or story-mgmt task catalog) | `plan:auto` |
 | Final acceptance | `human:po:accept` | Completed work summary | `accept:auto` |
 
 ### How approval works

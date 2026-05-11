@@ -1,4 +1,19 @@
-# Code Task Generator
+---
+name: story-mgmt
+description: >-
+  Manages story and task lifecycle. Use for story decomposition, task
+  generation, task planning, code task creation, story management, task
+  management, TDD task structuring, acceptance criteria traceability, and
+  adversarial review of task breakdowns. Also triggers on "decompose a story",
+  "generate tasks", "break down a story", or /story-mgmt. Do NOT use for
+  epics or feature-level planning — use the epic-mgmt skill instead.
+metadata:
+  author: botminter
+  version: 1.0.0
+  category: planning
+---
+
+# Story Management
 
 ## Overview
 
@@ -165,13 +180,13 @@ If multiple epic-scope signals are present:
 
 | Mode | Behavior |
 |------|----------|
-| **Interactive** | Present the assessment to the user: explain which signals were detected, and ask whether to continue with story-level decomposition or escalate to epic-level and switch to the PDD skill (`bm meetings planning`) instead |
-| **Auto** | Escalate automatically — create an epic issue on the board, link the current story to it, and invoke the PDD skill (`bm meetings planning`) with the work item as input. Log the scope detection rationale in the epic body |
+| **Interactive** | Present the assessment to the user: explain which signals were detected, and ask whether to continue with story-level decomposition or escalate to epic-level and switch to the epic-mgmt skill (`bm meetings planning`) instead |
+| **Auto** | Escalate automatically — create an epic issue on the board, link the current story to it, and invoke the epic-mgmt skill (`bm meetings planning`) with the work item as input. Log the scope detection rationale in the epic body |
 
 **Scope detection constraints:**
 - You MUST list the specific signals detected when proposing a scope change
-- In interactive mode: you MUST NOT auto-escalate — only the user decides whether to continue with code-task-generator or switch to PDD
-- In auto mode: you MUST create an epic issue and link the story before switching to PDD
+- In interactive mode: you MUST NOT auto-escalate — only the user decides whether to continue with story-mgmt or switch to epic-mgmt
+- In auto mode: you MUST create an epic issue and link the story before switching to epic-mgmt
 - In auto mode: you MUST log the scope detection rationale in the epic body before switching
 
 ### 4. Verify Against Codebase
@@ -614,7 +629,7 @@ If the specified plan file doesn't exist:
 ### Invalid Plan Format (PDD Mode)
 If the plan doesn't follow expected PDD format:
 - You SHOULD identify what sections are missing or malformed
-- You SHOULD suggest running the PDD skill (`bm meetings planning`) to generate a proper plan
+- You SHOULD suggest running the epic-mgmt skill (`bm meetings planning`) to generate a proper plan
 - You SHOULD attempt to extract what information is available
 
 ### No Uncompleted Stories (PDD Mode)

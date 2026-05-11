@@ -1,6 +1,6 @@
 name: agentic-sdlc-planning
 display_name: Agentic SDLC Planning
-description: 'Agentic software lifecycle with PDD planning pipeline, adversarial review, verification, and a multi-gate status graph. Three roles: engineer (full SDLC), sentinel (merge gatekeeper), and chief-of-staff (operator''s AI assistant).'
+description: 'Agentic software lifecycle with epic-mgmt (PDD) planning pipeline, adversarial review, verification, and a multi-gate status graph. Three roles: engineer (full SDLC), sentinel (merge gatekeeper), and chief-of-staff (operator''s AI assistant).'
 version: '1.0.0'
 schema_version: '1.0'
 roles:
@@ -132,7 +132,7 @@ meetings:
   description: Collaborative planning session
   member: engineer
   hat: lead_plan-create
-  prompt: /pdd
+  prompt: /epic-mgmt
   args:
   - name: idea
     positional: true
