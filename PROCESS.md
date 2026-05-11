@@ -38,7 +38,7 @@ Both gates can be auto-advanced with `plan:auto` and `accept:auto` labels respec
 
 | Scope | Planning Artifacts | Planning Skill |
 |-------|-------------------|----------------|
-| Epic | requirements.md, design.md, plan.md (steps = stories) | PDD |
+| Epic | requirements.md, design.md, plan.md (stories) | PDD |
 | Story | .code-task-NN.md files + catalog README | code-task-generator |
 | Task | None — task IS the unit of work | Agent runtime |
 | Bug | Investigation notes → linked Story | QE investigation |
@@ -55,7 +55,7 @@ Issues are GitHub issues on the **team repo** (not the project repo). The `githu
 |-------|---------------|-------------|
 | `title` | Issue title | Concise, descriptive issue title |
 | `state` | Issue state | `open` or `closed` |
-| `type` | Native issue type | Epic, Task (story), Bug |
+| `type` | Native issue type | Epic, Story, Task, Bug |
 | `assignee` | Issue assignee | GitHub username or unassigned |
 | `milestone` | Issue milestone | Milestone name or none |
 | `parent` | Native sub-issue relationship | Links stories to their parent epic |
@@ -72,7 +72,8 @@ Issue classification uses GitHub's native issue types:
 | Issue Type | Kind | Description |
 |------------|------|-------------|
 | **Epic** | `epic` | A large body of work spanning multiple stories |
-| **Task** | `story` | A single deliverable unit of work (sub-issue of an Epic, or standalone) |
+| **Story** | `story` | A deliverable unit of work decomposed into tasks (sub-issue of an Epic, or standalone) |
+| **Task** | `task` | Direct implementation in a Ralph loop — no decomposition step |
 | **Bug** | `bug` | A defect requiring investigation and fix |
 
 Stories are linked to epics as native sub-issues.
@@ -140,27 +141,39 @@ The `human:` prefix clearly distinguishes statuses that require a human response
 
 ## Epic Lifecycle (8 Statuses)
 
-The epic lifecycle passes through planning, human review, breakdown, monitoring, and acceptance:
+The epic lifecycle passes through planning, human review, breakdown, monitoring, and acceptance. Planning can happen via two paths — interactive (human-driven) or autonomous (agent-driven):
 
 | Status | Persona | Description |
 |--------|---------|-------------|
 | `human:po:triage` | PO (human) | New epic, awaiting human evaluation |
 | `human:po:backlog` | PO (human) | Accepted, prioritized, awaiting activation |
-| `eng:lead:plan` | lead | Creating planning artifacts (PDD pipeline for epics) |
-| `human:po:plan-review` | PO (human) | Planning artifacts awaiting human review |
-| `eng:lead:breakdown` | lead | Creating story issues from plan steps |
+| `eng:lead:plan` | lead | Creating planning artifacts autonomously (PDD pipeline) |
+| `human:po:plan-review` | PO (human) | Planning artifacts awaiting human review (PR or issue comment) |
+| `eng:lead:breakdown` | lead | Creating story issues from the story breakdown |
 | `eng:lead:monitor` | lead | Monitoring story execution, advances when all stories done |
 | `human:po:accept` | PO (human) | Epic awaiting human acceptance |
 | `done` | -- | Epic complete |
+
+### Two Planning Paths
+
+| Path | Trigger | Flow | Plan Review Mechanism |
+|------|---------|------|-----------------------|
+| **Interactive** | Human starts PDD conversation directly | `human:po:triage` → PDD conversation → PR opened → `human:po:plan-review` → PR merged → `eng:lead:breakdown` | PR merge = approval |
+| **Autonomous** | Agent picks up from board | `human:po:backlog` → `eng:lead:plan` → PDD autonomous → `human:po:plan-review` → issue comment approval → `eng:lead:breakdown` | Issue comment approval |
+
+**Interactive path:** The human and agent collaborate on planning in a conversation. The epic issue is created at the start (in `human:po:triage`). When planning is complete, a PR is opened with the spec artifacts linked to the epic, and the issue moves directly to `human:po:plan-review` — skipping `eng:lead:plan` since the human was part of the planning. Merging the PR = plan approval, which advances the issue to `eng:lead:breakdown`.
+
+**Autonomous path:** The agent picks up the epic from `human:po:backlog`, moves it to `eng:lead:plan`, runs the PDD pipeline autonomously with adversarial review, then moves to `human:po:plan-review`. The human reviews via issue comments. Approval advances to `eng:lead:breakdown`.
 
 ```mermaid
 stateDiagram-v2
     [*] --> human:po:triage
     human:po:triage --> human:po:backlog
-    human:po:backlog --> eng:lead:plan
-    eng:lead:plan --> human:po:plan-review
-    human:po:plan-review --> eng:lead:breakdown : approved
-    human:po:plan-review --> eng:lead:plan : rejected
+    human:po:triage --> human:po:plan_review : interactive (PR opened)
+    human:po:backlog --> eng:lead:plan : autonomous
+    eng:lead:plan --> human:po:plan_review
+    human:po:plan_review --> eng:lead:breakdown : approved (PR merged or comment)
+    human:po:plan_review --> eng:lead:plan : rejected (autonomous only)
     eng:lead:breakdown --> eng:lead:monitor
     eng:lead:monitor --> human:po:accept
     human:po:accept --> done : approved
@@ -171,12 +184,13 @@ stateDiagram-v2
 ### Epic Rejection Loops
 
 At human review gates, the human can reject and send the epic back:
-- `human:po:plan-review` -> `eng:lead:plan` (with feedback comment)
+- `human:po:plan-review` -> `eng:lead:plan` (autonomous path — with feedback comment)
+- `human:po:plan-review` -> PR feedback (interactive path — request changes on the PR)
 - `human:po:accept` -> `eng:lead:monitor` (with feedback comment)
 
 ### Internal Review within `eng:lead:plan`
 
-Adversarial review is internal to the `eng:lead:plan` status — it is NOT a separate board status. The `lead_plan-create` hat produces planning artifacts, then the `lead_plan-review` hat reviews them as an internal quality gate before transitioning to `human:po:plan-review`. This keeps the board simple while maintaining review rigor.
+Adversarial review is internal to the `eng:lead:plan` status (autonomous path only) — it is NOT a separate board status. The `lead_plan-create` hat produces planning artifacts, then the `lead_plan-review` hat reviews them as an internal quality gate before transitioning to `human:po:plan-review`. This keeps the board simple while maintaining review rigor.
 
 ---
 
@@ -324,14 +338,15 @@ Planning artifacts are stored in the team repo under `specs/`:
 ```
 specs/
   index.md                           # Catalog of all work items and their artifacts
-  <issue#>-<slug>/                   # Per-work-item directory
-    requirements.md                  # Requirements (epics)
-    design.md                        # Design document (epics)
-    plan.md                          # Implementation plan (epics)
-    tasks/                           # Code task files (stories)
-      .code-task-01.md
-      .code-task-02.md
-      README.md                      # Task catalog
+  <project>/                         # Per-project directory
+    <issue#>-<slug>/                 # Per-work-item directory
+      requirements.md                # Requirements (epics)
+      design.md                      # Design document (epics)
+      plan.md                        # Story breakdown (epics)
+      tasks/                         # Code task files (stories)
+        .code-task-01.md
+        .code-task-02.md
+        README.md                    # Task catalog
 ```
 
 The `specs/index.md` file serves as a catalog of all work items with pointers to their artifacts.
