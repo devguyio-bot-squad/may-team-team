@@ -102,10 +102,10 @@ Each reviewer MUST produce structured feedback in this format:
 - In interactive mode: you MUST NOT auto-dismiss any reviewer feedback — only the human decides what to address or dismiss
 - In auto mode: you MUST NOT exceed 3 review-revision rounds
 - In auto mode: in round 2, you MUST only address issues with severity `blocker` or `major`
-- **Rejection behavior (auto mode):** After round 3, if any verdict is BLOCK, you MUST reject the decomposition: post a comment on the story issue listing all remaining blocker issues, move the story to `po:backlog` using the `status-workflow` skill, and exit the skill without proceeding to Step 8
+- **Rejection behavior (auto mode):** After round 3, if any verdict is BLOCK, you MUST reject the decomposition: post a comment on the story issue listing all remaining blocker issues, move the story to `po:backlog` using the `status-workflow` skill, and exit the skill without proceeding further
 - You MUST revise the task files in-place after addressing feedback (do not create new copies)
 - When task files are revised, you MUST also update the catalog README to reflect any changes to task titles, complexity assessments, requirement traceability, or acceptance criteria
-- If revisions are made, the revised task files are included in the commit at Step 8 (Finalize)
+- If revisions are made, the revised task files are included in the commit at Step 8
 
 ## Steps
 
@@ -304,38 +304,21 @@ Run the adversarial review process on the generated task files before reporting 
 - You MUST present consolidated feedback from all 3 reviewers to the human
 - You MUST NOT auto-dismiss any reviewer feedback — only the human decides what to address or dismiss
 - After the human selects which issues to address, revise the task files in-place
-- You MUST complete the adversarial review before proceeding to Step 8 (Finalize)
+- You MUST complete the adversarial review before proceeding to Step 8
 
 **Constraints (auto mode):**
 - Follow the auto-mode iteration protocol defined in the Adversarial Review section (up to 3 rounds, severity filtering, rejection on persistent blockers)
-- You MUST complete the adversarial review before proceeding to Step 8 (Finalize)
+- You MUST complete the adversarial review before proceeding to Step 8
 
-### 8. Finalize
+### 8. Commit
 
-Commit task files, externalize to GitHub, and invoke ADR skill if needed.
+Commit this story's task files to version control.
 
-**Commit:**
+**Constraints (all modes):**
 - You MUST commit all task files, the catalog README, and index update to version control
 - If revisions were made during adversarial review (Step 7), the commit includes those revisions
 - Commit message pattern: `docs(specs): generate tasks for [story reference]`
 - On failure and retry, the skill MUST detect existing task files and resume — do not overwrite existing completed tasks
-
-**Task externalization:**
-
-After committing, handle externalization based on labels on the parent story issue:
-
-| Label | Behavior | GitHub Impact |
-|-------|----------|---------------|
-| *(default — no label)* | Each task becomes a GitHub issue with the `agent-internal` label. Does NOT appear in the default board view. | New issues created |
-| `tasks:inline` | Tasks tracked inside the parent story issue as a structured section. No separate issues. | Story issue updated |
-| `tasks:off` | Tasks exist only as `.code-task-NN.md` files in the repo. No GitHub issues or story updates. | None |
-
-**Externalization constraints:**
-- You MUST check for `tasks:inline` and `tasks:off` labels on the parent story issue before externalizing
-- Default (no label): create GitHub issues with `agent-internal` label for each task
-- `tasks:inline`: add a structured task catalog section to the parent story issue body
-- `tasks:off`: skip externalization entirely — repo files only
-- In all modes: the `.code-task-NN.md` files and catalog README are ALWAYS generated regardless of externalization mode
 
 **ADR invocation:**
 - When task decomposition surfaces an architectural decision (e.g., choosing between implementation approaches, introducing a new pattern), you MUST invoke the ADR skill to generate a formal `ADR-NNNN` document
@@ -344,39 +327,80 @@ After committing, handle externalization based on labels on the parent story iss
 - In interactive mode: the ADR skill presents the proposed ADR to the user for review before writing
 - In auto mode: the ADR skill generates the ADR autonomously — the ADR is committed alongside the task files
 
-### 9. Report Results
+**Skill chaining (interactive mode):**
 
-Inform user about generated tasks and next steps.
-
-**Constraints (all modes):**
-- You MUST list all generated code task files with their paths
-- You MUST report the externalization mode used and the results (issues created, story updated, or repo-only)
-
-**Constraints (interactive mode):**
-- For PDD mode: you MUST provide the story demo requirements for context
-- For description mode: you MUST provide a brief summary of what was created
-
-**PR and Status Transition (interactive mode):**
-
-After reporting results, you MUST:
-
-1. **Open a PR** on the team repo with the task files, linked to the story issue — OR, if a PR already exists from a previous story in this session, push to the same branch and update the PR body to include the new story's tasks. Use a single PR per session, not one per story. The PR title should reference the epic (e.g., `[#1] Tasks: Tmux agent sessions`). The PR body should list all stories decomposed and link to each catalog README.
-2. **Move the story issue** to `human:po:plan-review` using the `status-workflow` skill.
-3. **Inform the user** that the PR is open (or updated) and the story is in plan-review.
-
-**Skill Chaining (interactive mode):**
-
-- You MUST ask the user whether to proceed with the next story or stop to review the PR first
-- If the user chooses to stop: you MUST end the skill
-- If the user chooses to continue in this session:
-  - For PDD plans: you MUST offer to decompose the next story. Subsequent stories commit to the same branch and PR — no new PR is created.
-  - When all stories are decomposed (or the user stops), the single PR contains all task files from the session
+After committing, you MUST ask the user whether to decompose the next story or proceed to submit for review:
+- If next story: loop back to Step 1 with the next story number. Subsequent stories commit to the same branch — no new branch is created.
+- If done (or single story, or all stories decomposed): proceed to Step 9.
 
 **Constraints (auto mode):**
-- You MUST write a completion summary to the catalog README
-- You MUST move the story issue to `human:po:plan-review` using the `status-workflow` skill
+- After commit, proceed directly to Step 9 (no chaining — auto mode processes one story per invocation)
+
+### 9. Submit for Review
+
+Open PR and move stories to `human:po:plan-review`.
+
+**Constraints (interactive mode):**
+- You MUST open a PR on the team repo with the task files, linked to the story issue(s). Use a single PR per session, not one per story. The PR title should reference the epic (e.g., `[#1] Tasks: Tmux agent sessions`). The PR body should list all stories decomposed in this session and link to each catalog README.
+- If a PR already exists on the current branch, push to the same branch and update the PR body to include the new stories.
+- You MUST move all decomposed stories to `human:po:plan-review` using the `status-workflow` skill.
+- You MUST inform the user that the PR is open and stories are in plan-review.
+
+**Constraints (auto mode):**
+- You MUST NOT open a PR — specs are committed directly to the team repo
+- You MUST move the story to `human:po:plan-review` using the `status-workflow` skill
 - You MUST post a summary comment on the story issue with links to the task catalog
-- You MUST NOT block or wait for human input
+- You MUST write a completion summary to the catalog README
+- **END** — the skill exits here in auto mode. Steps 10–12 run after human approval in interactive mode only. In auto mode, when the `po_gate` hat detects approval at `human:po:plan-review`, it routes the story to `eng:lead:breakdown`, where the `lead_breakdown` hat externalizes the tasks (creating GitHub issues from `.code-task-NN.md` files based on story labels) and advances the story to `eng:dev:implement`.
+
+### 10. Await Approval (Interactive Only)
+
+Wait for human review of the PR. Auto mode ends at Step 9.
+
+**Constraints:**
+- You MUST wait for the user to review the PR
+- If the user rejects (requests changes): address the feedback, revise task files in-place, re-commit, push to the PR branch, and remain in this step until the user approves
+- If the user approves: proceed to Step 11
+
+### 11. Merge PR (Interactive Only)
+
+Merge the approved PR.
+
+**Constraints:**
+- You MUST ask the user for explicit confirmation before merging
+- You MUST merge the PR using the `github-project` skill only after the user confirms
+- You MUST NOT merge without user confirmation
+
+### 12. Externalize and Advance (Interactive Only)
+
+Externalize tasks to GitHub and advance stories to implementation. In auto mode, this is handled by the `lead_breakdown` hat at `eng:lead:breakdown` after human approval at `human:po:plan-review`.
+
+**Task externalization:**
+
+Handle externalization for ALL stories decomposed in this session, based on labels on each parent story issue:
+
+| Label | Behavior | GitHub Impact |
+|-------|----------|---------------|
+| *(default — no label)* | Each task becomes a GitHub issue with the `agent-internal` label. Does NOT appear in the default board view. | New issues created |
+| `tasks:inline` | Tasks tracked inside the parent story issue as a structured section. No separate issues. | Story issue updated |
+| `tasks:off` | Tasks exist only as `.code-task-NN.md` files in the repo. No GitHub issues or story updates. | None |
+
+**Externalization constraints:**
+- You MUST check for `tasks:inline` and `tasks:off` labels on each parent story issue before externalizing
+- Default (no label): create GitHub issues with `agent-internal` label for each task
+- `tasks:inline`: add a structured task catalog section to the parent story issue body
+- `tasks:off`: skip externalization entirely — repo files only
+- The `.code-task-NN.md` files and catalog README are ALWAYS generated regardless of externalization mode
+- Each story's tasks are externalized independently — different stories in the same batch MAY have different externalization modes based on their labels
+
+**Status transition:**
+- You MUST move all decomposed stories to `eng:dev:implement` using the `status-workflow` skill
+
+**Report results:**
+- You MUST list all generated code task files with their paths
+- You MUST report the externalization mode used for each story and the results (issues created, story updated, or repo-only)
+- For PDD mode: you MUST provide the story demo requirements for context
+- For description mode: you MUST provide a brief summary of what was created
 
 ## Code Task Format Specification
 

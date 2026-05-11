@@ -194,14 +194,15 @@ Adversarial review is internal to the `eng:lead:plan` status (autonomous path on
 
 ---
 
-## Story Lifecycle (7 Statuses)
+## Story Lifecycle (8 Statuses)
 
-Stories share `eng:lead:plan`, `human:po:plan-review`, and `human:po:accept` with the epic lifecycle. At `eng:lead:plan`, the lead hat checks the issue type — epic triggers PDD, story triggers code-task-generator:
+Stories share `eng:lead:plan`, `human:po:plan-review`, `eng:lead:breakdown`, and `human:po:accept` with the epic lifecycle. At `eng:lead:plan`, the lead hat checks the issue type — epic triggers PDD, story triggers code-task-generator. At `eng:lead:breakdown`, the lead hat externalizes tasks from the approved task catalog (mirroring how epics externalize stories from the approved plan):
 
 | Status | Persona | Description |
 |--------|---------|-------------|
 | `eng:lead:plan` | lead | Creating planning artifacts (code-task-generator for stories) |
 | `human:po:plan-review` | PO (human) | Planning artifacts awaiting human review |
+| `eng:lead:breakdown` | lead | Externalizing tasks from approved task catalog |
 | `eng:dev:implement` | dev | TDD implementation (red-green-refactor-review cycle) |
 | `eng:qe:verify` | QE | Verifying implementation against acceptance criteria |
 | `snt:gate:merge` | sentinel | Sentinel runs tests, validates quality, merges or rejects |
@@ -211,9 +212,10 @@ Stories share `eng:lead:plan`, `human:po:plan-review`, and `human:po:accept` wit
 ```mermaid
 stateDiagram-v2
     [*] --> eng:lead:plan
-    eng:lead:plan --> human:po:plan-review
-    human:po:plan-review --> eng:dev:implement : approved
-    human:po:plan-review --> eng:lead:plan : rejected
+    eng:lead:plan --> human:po:plan_review
+    human:po:plan_review --> eng:lead:breakdown : approved
+    human:po:plan_review --> eng:lead:plan : rejected
+    eng:lead:breakdown --> eng:dev:implement
     eng:dev:implement --> eng:qe:verify
     eng:qe:verify --> snt:gate:merge : passed
     eng:qe:verify --> eng:dev:implement : failed
