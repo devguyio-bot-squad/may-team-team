@@ -338,7 +338,7 @@ After committing, you MUST ask the user whether to decompose the next story or p
 
 ### 9. Submit for Review
 
-Open PR and move stories to `human:po:plan-review`.
+Move stories to `human:po:plan-review` for human approval. In interactive mode, open a PR first.
 
 **Constraints (interactive mode):**
 - You MUST open a PR on the team repo with the task files, linked to the story issue(s). Use a single PR per session, not one per story. The PR title should reference the epic (e.g., `[#1] Tasks: Tmux agent sessions`). The PR body should list all stories decomposed in this session and link to each catalog README.
