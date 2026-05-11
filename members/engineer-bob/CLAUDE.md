@@ -12,28 +12,25 @@ Your working directory is the project codebase — a clone of the project reposi
 
 ### Available Hats
 
-Seventeen specialized hats are available for different phases of work. Board scanning is handled by an auto-inject skill, not a hat.
+Fifteen specialized hats are available for different phases of work. Board scanning is handled by an auto-inject skill, not a hat.
 
 | Hat | Purpose |
 |-----|---------|
-| **po_backlog** | Manages triage, backlog, and ready states |
-| **po_reviewer** | Gates human review (design, plan, accept) |
-| **lead_reviewer** | Reviews arch work before human gate |
-| **arch_designer** | Produces design docs |
-| **arch_planner** | Decomposes designs into story breakdowns |
-| **arch_breakdown** | Creates story/subtask issues from approved breakdowns |
-| **arch_monitor** | Monitors epic progress |
-| **arch_simple_bug_reviewer** | Reviews simple bug fixes, can approve or escalate |
-| **arch_bug_refiner** | Reviews/refines complex bug plans |
-| **qe_test_designer** | Writes test plans and test stubs |
-| **qe_investigator** | Investigates bugs, determines simple vs complex |
-| **dev_implementer** | Implements stories, handles rejections |
-| **dev_code_reviewer** | Reviews code quality |
-| **qe_verifier** | Verifies against acceptance criteria |
-| **bug_monitor** | Monitors subtask completion for complex bugs |
+| **po_gate** | Handles all human:po:* statuses — triage, backlog, plan-review, accept |
+| **lead_plan-create** | Creates planning artifacts — PDD for epics, code-task-generator for stories |
+| **lead_plan-review** | Zero-trust adversarial quality gate for planning artifacts |
+| **lead_breakdown** | Externalizes approved plans — story issues from epics, task issues from stories |
+| **lead_monitor** | Monitors epic progress, advances to acceptance when all stories done |
+| **dev_implement-red** | TDD red phase — writes failing tests for the current task |
+| **dev_implement-green** | TDD green phase — implements minimum code to pass tests |
+| **dev_implement-refactor** | TDD refactor phase — cleans up while keeping tests green |
+| **dev_implement-review** | Code reviewer — reviews implementation quality |
+| **qe_verify** | Verifies implementation against acceptance criteria |
+| **qe_investigate** | Investigates bugs, determines simple vs complex, creates linked Story |
+| **qe_monitor** | Monitors linked Story completion for bugs |
 | **sre_setup** | Sets up test infrastructure |
-| **cw_writer** | Writes documentation |
-| **cw_reviewer** | Reviews documentation |
+| **cw_write** | Writes documentation for documentation stories |
+| **cw_review** | Reviews documentation quality |
 
 ### Workspace Layout
 

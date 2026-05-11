@@ -6,8 +6,13 @@ Every design document produced by the architect MUST include:
 - Architecture (with diagram where applicable)
 - Components and interfaces
 - Acceptance criteria (Given-When-Then format)
-- Impact on existing system
+- Testing Strategy
 - Security Considerations
+- Observability
+- Performance
+- Migration & Compatibility
+- Impact on Existing System
+- Documentation Impact
 
 ## Applies To
 All `arch_designer` hat outputs.
