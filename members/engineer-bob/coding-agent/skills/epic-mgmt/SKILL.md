@@ -184,7 +184,19 @@ Each reviewer MUST produce structured feedback in this format:
 
 ## Steps
 
-### 0. Project Selection
+### 0. Orient
+
+Before starting the PDD pipeline, assess whether epic-level planning is actually needed.
+
+**Constraints:**
+- You MUST read the epic issue (if one exists) and check for existing artifacts in `team/specs/`.
+- If the epic already has a completed `plan.md` with STORY-NN entries AND story issues exist as sub-issues of the epic, then epic planning is complete. You MUST NOT re-run the PDD pipeline.
+- Instead, you MUST load the `story-mgmt` skill and work at the story level. Tell the user (interactive) or log (auto): "Epic planning is complete — stories exist. Loading story-mgmt skill to work at story level."
+- If the user explicitly asked to work on a specific story (e.g., "decompose story-04", "work on story #8"), you MUST load `story-mgmt` immediately — do not run PDD.
+- If the epic has partial artifacts (e.g., design exists but no plan), proceed with the PDD pipeline at the appropriate resumability point (Step 1 handles this).
+- If no artifacts exist, proceed normally to Step 0a (Project Selection).
+
+### 0a. Project Selection
 
 Determine which BotMinter project (code repository) this epic belongs to.
 
