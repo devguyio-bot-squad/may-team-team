@@ -9,7 +9,7 @@ cli:
 
 core:
   guardrails:
-    - "Comply with all invariants in team/invariants/, team/projects/<project>/invariants/, and team/members/engineer-bob/invariants/"
+    - "Comply with all invariants in team/invariants/, team/projects/botminter/invariants/, and team/members/engineer-bob/invariants/"
 
 hats:
   po_gate:
@@ -29,7 +29,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/po_gate/knowledge/`
 
@@ -45,7 +45,7 @@ hats:
 
       1. Load the `github-project` skill.
       2. Read the issue using the query-issues operation (`--type single --issue <N>`).
-         The response includes `issueType.name` (Epic, Task, Bug) and labels.
+         The response includes `issueType.name` (Epic, Story, Task, Bug) and labels.
       3. Determine the issue's current project status.
       4. Branch to the appropriate handler below.
 
@@ -90,7 +90,7 @@ hats:
       2. **If `plan:auto` present → auto-advance:**
          - Query issue type.
            Epic → set status to `eng:lead:breakdown`.
-           Story (Task) → set status to `eng:lead:breakdown`.
+           Story → set status to `eng:lead:breakdown`.
          - Add auto-approval comment:
            ```
            ### 📝 po — <ISO-timestamp>
@@ -118,7 +118,7 @@ hats:
       4. **Check for human response:**
          - `Approved` or `LGTM` →
            Epic: set status to `eng:lead:breakdown`.
-           Story (Task): set status to `eng:lead:breakdown`.
+           Story: set status to `eng:lead:breakdown`.
          - `Rejected` → set status to `eng:lead:plan`, append feedback comment.
          - No response → return control.
 
@@ -155,7 +155,7 @@ hats:
          - `Approved` or `LGTM` → set status to `done`, close the issue.
          - `Rejected` →
            Epic: set status to `eng:lead:monitor`, append feedback.
-           Story (Task): set status to `eng:dev:implement`, append feedback.
+           Story: set status to `eng:dev:implement`, append feedback.
          - No response → return control.
 
       ### Comment Format
@@ -179,14 +179,14 @@ hats:
 
       You create planning artifacts for the issue. Check the issue type to determine
       the planning approach:
-      - **Epic** → run the epic-mgmt skill (PDD) to produce requirements, design, and plan
-      - **Story (Task)** → run the story-mgmt skill to produce code task files
+      - **Epic** → run the epic-mgmt skill to produce requirements, design, and plan
+      - **Story** → run the story-mgmt skill to produce code task files
 
       ### Knowledge
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/lead_plan-create/knowledge/`
 
@@ -216,17 +216,17 @@ hats:
       **For Epics:**
       5. Load the epic-mgmt skill (`ralph tools skill load epic-mgmt` or invoke via `/epic-mgmt`).
       6. Run the epic-mgmt pipeline to produce:
-         - `team/specs/<issue#>-<slug>/requirements.md`
-         - `team/specs/<issue#>-<slug>/design.md`
-         - `team/specs/<issue#>-<slug>/plan.md`
+         - `team/specs/botminter/<issue#>-<slug>/requirements.md`
+         - `team/specs/botminter/<issue#>-<slug>/design.md`
+         - `team/specs/botminter/<issue#>-<slug>/plan.md`
       7. If revising after rejection, update the existing artifacts addressing feedback.
       8. Add a comment linking to the artifacts using the add-comment operation.
 
-      **For Stories (Tasks):**
+      **For Stories:**
       5. Load the story-mgmt skill (`ralph tools skill load story-mgmt`).
       6. Run the story-mgmt skill to produce:
-         - `team/specs/<issue#>-<slug>/tasks/.code-task-01.md`, etc.
-         - `team/specs/<issue#>-<slug>/tasks/README.md` (catalog)
+         - `team/specs/botminter/<issue#>-<slug>/tasks/.code-task-01.md`, etc.
+         - `team/specs/botminter/<issue#>-<slug>/tasks/README.md` (catalog)
       7. If revising after rejection, update the existing task files addressing feedback.
       8. Add a comment linking to the task catalog using the add-comment operation.
 
@@ -274,7 +274,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/lead_plan-review/knowledge/`
 
@@ -373,7 +373,7 @@ hats:
          The response includes `issueType.name`.
       3. Locate the planning artifacts in `team/specs/` (or the path referenced in the issue comments).
       4. **For Epics:** Read ALL artifacts: `requirements.md`, `design.md`, `plan.md`, `idea-honing.md`.
-         **For Stories (Tasks):** Read ALL code task files and the task catalog `README.md`.
+         **For Stories:** Read ALL code task files and the task catalog `README.md`.
       5. Execute the 6-step process above. Produce your own evidence for every claim you verify.
       6. **If passed:**
          - Set the issue's project status to `human:po:plan-review` via the status-workflow skill.
@@ -413,13 +413,13 @@ hats:
       You externalize approved plans into child issues. Check the issue type to
       determine behavior:
       - **Epic** → create story issues from plan.md, advance to eng:lead:monitor
-      - **Story (Task)** → externalize tasks from .code-task-NN.md files, advance to eng:dev:implement
+      - **Story** → externalize tasks from .code-task-NN.md files, advance to eng:dev:implement
 
       ### Knowledge
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/lead_breakdown/knowledge/`
 
@@ -440,7 +440,7 @@ hats:
 
       **For Epics:**
 
-      4. Find the plan artifact — read `team/specs/<project>/<issue#>-<slug>/plan.md` for the story list.
+      4. Find the plan artifact — read `team/specs/botminter/<issue#>-<slug>/plan.md` for the story list.
       5. Create each story as a Story-type sub-issue of the parent Epic using the sub-issue operation.
          Each story must have a title and body with acceptance criteria.
       6. Set each story's initial project status:
@@ -450,10 +450,10 @@ hats:
       8. Set the epic's project status to `eng:lead:monitor` via the status-workflow skill.
       9. Return control to the orchestrator.
 
-      **For Stories (Tasks):**
+      **For Stories:**
 
-      4. Read the task catalog README at `team/specs/<project>/<epic#>-<epic-slug>/tasks/<issue#>-<story-slug>/README.md`
-         (or `team/specs/<project>/tasks/<issue#>-<story-slug>/README.md` for standalone stories).
+      4. Read the task catalog README at `team/specs/botminter/<epic#>-<epic-slug>/tasks/<issue#>-<story-slug>/README.md`
+         (or `team/specs/botminter/tasks/<issue#>-<story-slug>/README.md` for standalone stories).
          Parse the task list from the catalog table.
       5. Check for externalization mode labels on the story issue:
          - `tasks:off` → skip externalization (tasks stay as files only). Go to step 8.
@@ -506,7 +506,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/lead_monitor/knowledge/`
 
@@ -560,7 +560,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/dev_implement-red/knowledge/`
 
@@ -613,7 +613,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/dev_implement-green/knowledge/`
 
@@ -654,7 +654,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/dev_implement-refactor/knowledge/`
 
@@ -698,7 +698,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/dev_implement-review/knowledge/`
 
@@ -713,7 +713,7 @@ hats:
       3. Review the implementation changes (git diff, read modified files).
       4. Check compliance with:
          - Team invariants (`team/invariants/`)
-         - Project invariants (`team/projects/<project>/invariants/`)
+         - Project invariants (`team/projects/botminter/invariants/`)
          - Member invariants (`team/members/engineer-bob/invariants/`)
          - Code style and project patterns
       5. **If rejected:**
@@ -752,7 +752,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/qe_verify/knowledge/`
 
@@ -807,7 +807,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/qe_investigate/knowledge/`
 
@@ -899,7 +899,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/qe_monitor/knowledge/`
 
@@ -959,7 +959,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/sre_setup/knowledge/`
 
@@ -998,7 +998,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/cw_write/knowledge/`
 
@@ -1042,7 +1042,7 @@ hats:
 
       Reference as needed:
       - Team: `team/knowledge/`
-      - Project: `team/projects/<project>/knowledge/`
+      - Project: `team/projects/botminter/knowledge/`
       - Member: `team/members/engineer-bob/knowledge/`
       - Hat: `team/members/engineer-bob/hats/cw_review/knowledge/`
 
@@ -1087,7 +1087,7 @@ skills:
   enabled: true
   dirs:
     - team/coding-agent/skills
-    - team/projects/<project>/coding-agent/skills
+    - team/projects/botminter/coding-agent/skills
     - team/members/engineer-bob/coding-agent/skills
   overrides:
     board-scanner:

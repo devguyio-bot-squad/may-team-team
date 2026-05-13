@@ -96,9 +96,8 @@ The team repo is auto-detected from `team/`'s git remote.
 
 ### Operating Mode
 
-**Supervised mode (GitHub comment-based)** — human gates at three decision points:
-- `human:po:design-review` — design doc approval
-- `human:po:plan-review` — story breakdown approval
+**Supervised mode (GitHub comment-based)** — human gates at two decision points:
+- `human:po:plan-review` — planning artifacts approval (design doc + story breakdown)
 - `human:po:accept` — epic acceptance
 
 At these gates, the system checks for human response comments containing approval or rejection. All other transitions auto-advance.

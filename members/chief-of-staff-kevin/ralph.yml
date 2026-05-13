@@ -82,7 +82,7 @@ skills:
   enabled: true
   dirs:
     - team/coding-agent/skills
-    - team/projects/<project>/coding-agent/skills
+    - team/projects/botminter/coding-agent/skills
     - team/members/chief-of-staff-kevin/coding-agent/skills
   overrides:
     board-scanner:
