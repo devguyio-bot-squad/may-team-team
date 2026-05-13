@@ -169,11 +169,11 @@ The epic lifecycle passes through planning, human review, breakdown, monitoring,
 stateDiagram-v2
     [*] --> human:po:triage
     human:po:triage --> human:po:backlog
-    human:po:triage --> human:po:plan_review : interactive (PR opened)
+    human:po:triage --> human:po:plan-review : interactive (PR opened)
     human:po:backlog --> eng:lead:plan : autonomous
-    eng:lead:plan --> human:po:plan_review
-    human:po:plan_review --> eng:lead:breakdown : approved (PR merged or comment)
-    human:po:plan_review --> eng:lead:plan : rejected (autonomous only)
+    eng:lead:plan --> human:po:plan-review
+    human:po:plan-review --> eng:lead:breakdown : approved (PR merged or comment)
+    human:po:plan-review --> eng:lead:plan : rejected (autonomous only)
     eng:lead:breakdown --> eng:lead:monitor
     eng:lead:monitor --> human:po:accept
     human:po:accept --> done : approved
@@ -212,9 +212,9 @@ Stories share `eng:lead:plan`, `human:po:plan-review`, `eng:lead:breakdown`, and
 ```mermaid
 stateDiagram-v2
     [*] --> eng:lead:plan
-    eng:lead:plan --> human:po:plan_review
-    human:po:plan_review --> eng:lead:breakdown : approved
-    human:po:plan_review --> eng:lead:plan : rejected
+    eng:lead:plan --> human:po:plan-review
+    human:po:plan-review --> eng:lead:breakdown : approved
+    human:po:plan-review --> eng:lead:plan : rejected
     eng:lead:breakdown --> eng:dev:implement
     eng:dev:implement --> eng:qe:verify
     eng:qe:verify --> snt:gate:merge : passed

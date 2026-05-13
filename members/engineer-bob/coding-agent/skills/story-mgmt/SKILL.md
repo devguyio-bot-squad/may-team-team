@@ -117,7 +117,7 @@ Each reviewer MUST produce structured feedback in this format:
 - In interactive mode: you MUST NOT auto-dismiss any reviewer feedback — only the human decides what to address or dismiss
 - In auto mode: you MUST NOT exceed 3 review-revision rounds
 - In auto mode: in round 2, you MUST only address issues with severity `blocker` or `major`
-- **Rejection behavior (auto mode):** After round 3, if any verdict is BLOCK, you MUST reject the decomposition: post a comment on the story issue listing all remaining blocker issues, move the story to `po:backlog` using the `status-workflow` skill, and exit the skill without proceeding further
+- **Rejection behavior (auto mode):** After round 3, if any verdict is BLOCK, you MUST reject the decomposition: post a comment on the story issue listing all remaining blocker issues, move the story back to `eng:lead:plan` using the `status-workflow` skill, and exit the skill without proceeding further
 - You MUST revise the task files in-place after addressing feedback (do not create new copies)
 - When task files are revised, you MUST also update the catalog README to reflect any changes to task titles, complexity assessments, requirement traceability, or acceptance criteria
 - If revisions are made, the revised task files are included in the commit at Step 8

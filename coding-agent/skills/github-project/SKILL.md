@@ -44,7 +44,7 @@ Claude will automatically invoke the appropriate script based on your request.
 
 **What it does:**
 - Fetches all project items from GitHub Projects v2
-- Groups issues by status field value (po:triage, arch:design, qe:test-design, etc.)
+- Groups issues by status field value (human:po:triage, eng:lead:plan, eng:dev:implement, etc.)
 - Shows epic-to-story relationships via native sub-issues
 - Displays in workflow order with issue counts
 - Marks closed issues
@@ -62,15 +62,15 @@ Then format the JSON output into a markdown table grouped by status.
 ```
 ## Board
 
-### po:triage
+### human:po:triage
 | # | Title | Kind | Assignee |
 |---|-------|------|----------|
 | 3 | New feature epic | epic | — |
 
-### qe:test-design
+### eng:dev:implement
 | # | Title | Type | Parent | Assignee |
 |---|-------|------|--------|----------|
-| 5 | Implement OAuth | Task | #3 | dev-user |
+| 5 | Implement OAuth | Story | #3 | dev-user |
 
 ---
 Summary: 5 issues (4 open, 1 closed) | 2 Epics, 3 Tasks
@@ -86,7 +86,7 @@ Summary: 5 issues (4 open, 1 closed) | 2 Epics, 3 Tasks
 1. Creates issue with GitHub native issue type (Epic, Task, or Bug)
 2. For stories with `--parent`: links as native sub-issue of the parent
 3. Adds issue to project
-4. Sets initial status (`po:triage` for epics/stories, `bug:investigate` for bugs)
+4. Sets initial status (`human:po:triage` for all issue kinds)
 5. Posts attribution comment
 
 **Issue type mapping:**
@@ -162,8 +162,8 @@ Claude will run:
 ```bash
 bash scripts/status-transition.sh \
   --issue 15 \
-  --from "po:triage" \
-  --to "arch:design"
+  --from "human:po:triage" \
+  --to "eng:lead:plan"
 ```
 
 **Critical:** This operation includes GraphQL verification. If the status doesn't actually change, the script fails with details. See [GraphQL Queries](references/graphql-queries.md) for the v3.0.0 fix.
@@ -358,7 +358,7 @@ bash scripts/pr-ops.sh --action list
 **Parameters:**
 - `--type` (required) - `label`, `status`, `milestone`, `assignee`, `single`, or `issue-type`
 - `--label` (for label/issue-type query) - Label name or issue type name (e.g., `role/chief-of-staff`, `Epic`)
-- `--status` (for status query) - Status value (e.g., `arch:design`)
+- `--status` (for status query) - Status value (e.g., `eng:lead:plan`)
 - `--milestone` (for milestone query) - Milestone title
 - `--assignee` (for assignee query) - GitHub username
 - `--issue` (for single query) - Issue number
@@ -371,7 +371,7 @@ Claude will run:
 bash scripts/query-issues.sh --type label --label "role/chief-of-staff"
 
 # By status
-bash scripts/query-issues.sh --type status --status "arch:design"
+bash scripts/query-issues.sh --type status --status "eng:lead:plan"
 
 # By milestone
 bash scripts/query-issues.sh --type milestone --milestone "Q1 2026"
@@ -511,25 +511,25 @@ mutation {
 **Actions:**
 1. Claude runs `create-issue.sh` with `--kind epic`
 2. Issue created with native "Epic" issue type
-3. Added to project with initial status `po:triage`
+3. Added to project with initial status `human:po:triage`
 4. Attribution comment posted
 
-**Result:** Epic created at #15 with Epic type, visible in `po:triage` column on board.
+**Result:** Epic created at #15 with Epic type, visible in `human:po:triage` column on board.
 
 ---
 
 ### Example 2: Move Issue Through Workflow
 
-**User says:** "Move issue #15 from triage to design"
+**User says:** "Move issue #15 from triage to planning"
 
 **Actions:**
-1. Claude runs `status-transition.sh` with `--to "arch:design"`
+1. Claude runs `status-transition.sh` with `--to "eng:lead:plan"`
 2. Script validates current status
 3. Updates status via gh CLI
 4. Verifies with GraphQL query that status actually changed
 5. Posts attribution comment documenting transition
 
-**Result:** Issue #15 now in `arch:design` status, verified with GraphQL, transition documented.
+**Result:** Issue #15 now in `eng:lead:plan` status, verified with GraphQL, transition documented.
 
 ---
 
@@ -554,10 +554,10 @@ mutation {
 **Actions:**
 1. Claude runs `create-issue.sh` with `--kind story --parent 15`
 2. Creates Story issue type linked as native sub-issue of #15
-3. Sets initial status to `po:triage`
+3. Sets initial status to `human:po:triage`
 4. Posts attribution comment
 
-**Result:** Story #16 created as sub-issue of epic #15 (visible in GitHub UI), in `po:triage` column.
+**Result:** Story #16 created as sub-issue of epic #15 (visible in GitHub UI), in `human:po:triage` column.
 
 ---
 

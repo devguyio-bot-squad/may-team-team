@@ -4,12 +4,12 @@
 
 This skill creates and manages Architectural Decision Records (ADRs) with sequential `ADR-NNNN` IDs. ADRs are formal, immutable documents that capture significant architectural decisions — why a decision was made, what alternatives were considered, and what consequences follow.
 
-ADRs are referenced by the epic-mgmt skill (PDD) during design (when `D-NN` decisions are made) and by the story-mgmt skill (when task decomposition surfaces architectural choices). The `D-NN` decision in a design document is the lightweight inline record; the ADR is the full formal document with context, decision rationale, and consequences.
+ADRs are referenced by the epic-mgmt skill during design (when `D-NN` decisions are made) and by the story-mgmt skill (when task decomposition surfaces architectural choices). The `D-NN` decision in a design document is the lightweight inline record; the ADR is the full formal document with context, decision rationale, and consequences.
 
 ## Parameters
 
 - **title** (required): Short title of the architectural decision (e.g., "Use Redis for session storage", "Adopt event-sourcing for audit trail")
-- **context** (optional): Background context, problem statement, or link to the design doc `D-NN` decision that triggered this ADR. If invoked from within an epic-mgmt (PDD) session, the `D-NN` decision context is automatically provided.
+- **context** (optional): Background context, problem statement, or link to the design doc `D-NN` decision that triggered this ADR. If invoked from within a PDD session, the `D-NN` decision context is automatically provided.
 - **adr_dir** (optional, default: `team/specs/adrs/`): Directory where ADR files are stored. ADR numbering is global (team-wide) — all ADRs across all projects share the same sequence.
 
 **Constraints for parameter acquisition:**
@@ -23,8 +23,8 @@ This skill supports two runtime modes, determined by the context in which it is 
 
 | Mode | Trigger | Human Present | Behavior |
 |------|---------|---------------|----------|
-| **Interactive** | Invoked directly or from interactive epic-mgmt/story-mgmt session | Yes | Present proposed ADR for review, solicit feedback on decision framing and consequences |
-| **Auto** | Invoked from autonomous epic-mgmt or story-mgmt session | No | Generate ADR autonomously, document reasoning inline, proceed without confirmation |
+| **Interactive** | Invoked directly or from interactive PDD/story-mgmt session | Yes | Present proposed ADR for review, solicit feedback on decision framing and consequences |
+| **Auto** | Invoked from autonomous PDD or story-mgmt session | No | Generate ADR autonomously, document reasoning inline, proceed without confirmation |
 
 **Interactive mode rules:**
 - Present the proposed ADR content for user review before writing the file
@@ -58,7 +58,7 @@ Write the ADR document following the standard format.
 - The title slug MUST be lowercase, hyphen-separated, derived from the title parameter (e.g., "Use Redis for Sessions" → `use-redis-for-sessions`)
 - You MUST use the exact format specified in the ADR Format section below
 - You MUST set the initial status to `Proposed` unless the decision has already been accepted (e.g., when generating from a finalized design document, use `Accepted`)
-- If invoked from an epic-mgmt (PDD) session with a `D-NN` decision, you MUST include a reference linking back to the design document and the specific `D-NN` entry
+- If invoked from a PDD session with a `D-NN` decision, you MUST include a reference linking back to the design document and the specific `D-NN` entry
 - If invoked from story-mgmt, you MUST include a reference to the story and task context where the decision emerged
 - You MUST document both positive and negative consequences — ADRs that list only benefits are incomplete
 
@@ -86,7 +86,7 @@ Inform the caller about the generated ADR.
 
 **Constraints:**
 - You MUST report the ADR ID (`ADR-NNNN`), file path, and title
-- If invoked from epic-mgmt, you MUST return the ADR ID so it can be referenced in the design document alongside the `D-NN` decision
+- If invoked from PDD, you MUST return the ADR ID so it can be referenced in the design document alongside the `D-NN` decision
 - If invoked from story-mgmt, you MUST return the ADR ID so it can be referenced in the catalog README
 
 ## ADR Format
@@ -157,7 +157,7 @@ ADRs are **immutable records** — they are never edited after acceptance. The l
 If `{adr_dir}` is empty or does not exist, this is the first ADR. Start numbering at `ADR-0001` and create the directory.
 
 ### Invoked Without Context
-If no `D-NN` reference or task context is available, the ADR is standalone. This is valid — not all architectural decisions originate from epic-mgmt or story-mgmt. Ensure the Context section clearly states why the decision is being recorded.
+If no `D-NN` reference or task context is available, the ADR is standalone. This is valid — not all architectural decisions originate from PDD or story-mgmt. Ensure the Context section clearly states why the decision is being recorded.
 
 ### Numbering Gaps
 ADR numbering MAY have gaps (e.g., `ADR-0001`, `ADR-0003` if `ADR-0002` was created in a different branch). Always use the next number after the highest existing ID — do not fill gaps.
