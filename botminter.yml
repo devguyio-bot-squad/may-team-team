@@ -89,6 +89,8 @@ statuses:
 projects:
 - name: botminter
   fork_url: https://github.com/devguyio-bot-squad/botminter.git
+- name: ralph-orchestrator
+  fork_url: https://github.com/devguyio-bot-squad/ralph-orchestrator
 views:
 - name: Engineer
   prefixes:
@@ -133,33 +135,33 @@ bridges:
   display_name: Rocket.Chat
   description: Rocket.Chat bridge for team communication (local Podman Pod)
   type: local
-meetings:
-  - name: planning
-    description: Collaborative planning session
-    member: engineer
-    instructions: |
-      - You are an engineer on this team.
-      - Right now you are in an interactive planning meeting with the human (PO).
-      - When the user says "start" you must start the planning meeting and welcome the user to the planning meeting.
-      - You MUST start by orienting yourself and understanding if this meeting is about a fresh idea, an existing epic, or an existing issue.
-      - If this is about some unplanned work or work that's not tracked, you MUST ask the user if this is for an epic or a story:
-          - If epic, then you must load the `epic-mgmt` skill and work at epic level
-          - If story, then you must load the `story-mgmt` skill and work at the story level
-      - If this is about some already tracked epic:
-          - You MUST read the epic issue (if one exists) and scan `team/specs/` for existing artifacts BEFORE starting any PDD step
-          - If `plan.md` exists with STORY-NN entries AND story issues exist as sub-issues of the epic, you MUST NOT run the PDD pipeline — epic planning is already complete
-          - If epic planning is complete, you MUST load the `story-mgmt` skill and work at story level
-      - If this is about some already tracked story, you MUST load the `story-mgmt` skill and work at the story level.
-    prompt: start
-  - name: verification
-    description: Verify acceptance criteria for completed work
-    member: engineer
-    instructions: |
-      - You are an engineer on this team.
-      - Right now you are in an interactive verification meeting with the human (PO).
-      - You MUST load the `verification` skill to verify acceptance criteria for committed work.
-      - Ask the user for the work item (issue number) to verify.
-    prompt: start
 bridge: tuwunel
 operator:
   bridge_username: bmadmin
+meetings:
+- name: planning
+  description: Collaborative planning session
+  member: engineer
+  instructions: |
+    - You are an engineer on this team.
+    - Right now you are in an interactive planning meeting with the human (PO).
+    - When the user says "start" you must start the planning meeting and welcome the user to the planning meeting.
+    - You MUST start by orienting yourself and understanding if this meeting is about a fresh idea, an existing epic, or an existing issue.
+    - If this is about some unplanned work or work that's not tracked, you MUST ask the user if this is for an epic or a story:
+        - If epic, then you must load the `epic-mgmt` skill and work at epic level
+        - If story, then you must load the `story-mgmt` skill and work at the story level
+    - If this is about some already tracked epic:
+        - You MUST read the epic issue (if one exists) and scan `team/specs/` for existing artifacts BEFORE starting any PDD step
+        - If `plan.md` exists with STORY-NN entries AND story issues exist as sub-issues of the epic, you MUST NOT run the PDD pipeline — epic planning is already complete
+        - If epic planning is complete, you MUST load the `story-mgmt` skill and work at story level
+    - If this is about some already tracked story, you MUST load the `story-mgmt` skill and work at the story level.
+  prompt: start
+- name: verification
+  description: Verify acceptance criteria for completed work
+  member: engineer
+  instructions: |
+    - You are an engineer on this team.
+    - Right now you are in an interactive verification meeting with the human (PO).
+    - You MUST load the `verification` skill to verify acceptance criteria for committed work.
+    - Ask the user for the work item (issue number) to verify.
+  prompt: start
