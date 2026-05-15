@@ -27,16 +27,8 @@ Board scanning is handled by an auto-inject skill, not a hat.
 
 ### Workspace Layout
 
-```
-chief-of-staff-workspace/              # Workspace (CWD)
-  team/                              # Team repo clone (submodule)
-    knowledge/, invariants/          # Team-level
-    members/<role>-<member-name>/        # Member config
-    projects/<project>/              # Project-specific
-  PROMPT.md
-  CLAUDE.md
-  ralph.yml
-```
+<!-- BM:WORKSPACE_LAYOUT -->
+<!-- /BM:WORKSPACE_LAYOUT -->
 
 ### Knowledge Resolution
 

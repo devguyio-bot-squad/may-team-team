@@ -4,9 +4,10 @@ This file provides context for operating as the engineer team member. Read `team
 
 ## A. Project Context
 
-Your working directory is the project codebase — a clone of the project repository with full access to all source code at `./`. The team repo is cloned into `team/` within the project workspace.
+Your working directory is your workspace — not a project repo. Projects are checked out as git submodules under `projects/` as well as the team repo at `team/`.
 
-[When a real project is assigned, this section will contain project-specific information: build commands, test commands, architecture notes, deployment procedures, etc.]
+<!-- BM:PROJECT_CONTEXT -->
+<!-- /BM:PROJECT_CONTEXT -->
 
 ## B. Team Member Skills & Capabilities
 
@@ -16,35 +17,26 @@ Fifteen specialized hats are available for different phases of work. Board scann
 
 | Hat | Purpose |
 |-----|---------|
-| **po_gate** | Handles all human:po:* statuses — triage, backlog, plan-review, accept |
-| **lead_plan-create** | Creates planning artifacts — epic-mgmt (PDD) for epics, story-mgmt for stories |
+| **po_gate** | Gates human review (triage, plan-review, accept) |
+| **lead_plan-create** | Creates planning artifacts (epic-mgmt for epics, story-mgmt for stories) |
 | **lead_plan-review** | Zero-trust adversarial quality gate for planning artifacts |
-| **lead_breakdown** | Externalizes approved plans — story issues from epics, task issues from stories |
-| **lead_monitor** | Monitors epic progress, advances to acceptance when all stories done |
-| **dev_implement-red** | TDD red phase — writes failing tests for the current task |
-| **dev_implement-green** | TDD green phase — implements minimum code to pass tests |
-| **dev_implement-refactor** | TDD refactor phase — cleans up while keeping tests green |
-| **dev_implement-review** | Code reviewer — reviews implementation quality |
-| **qe_verify** | Verifies implementation against acceptance criteria |
-| **qe_investigate** | Investigates bugs, determines simple vs complex, creates linked Story |
-| **qe_monitor** | Monitors linked Story completion for bugs |
+| **lead_breakdown** | Externalizes stories from epic plans or tasks from story catalogs |
+| **lead_monitor** | Monitors epic progress |
+| **dev_implement-red** | TDD red phase — writes failing tests |
+| **dev_implement-green** | TDD green phase — makes tests pass |
+| **dev_implement-refactor** | TDD refactor phase — cleans up implementation |
+| **dev_implement-review** | Internal code review before QE |
+| **qe_verify** | Verifies against acceptance criteria |
+| **qe_investigate** | Investigates bugs, determines simple vs complex |
+| **qe_monitor** | Monitors linked story progress for bugs |
 | **sre_setup** | Sets up test infrastructure |
-| **cw_write** | Writes documentation for documentation stories |
-| **cw_review** | Reviews documentation quality |
+| **cw_write** | Writes documentation |
+| **cw_review** | Reviews documentation |
 
 ### Workspace Layout
 
-```
-project-repo-engineer/               # Project repo clone (CWD)
-  team/                           # Team repo clone
-    knowledge/, invariants/             # Team-level
-    members/engineer-bob/                    # Member config
-    projects/<project>/                 # Project-specific
-  PROMPT.md → team/members/engineer-bob/PROMPT.md
-  CLAUDE.md → team/members/engineer-bob/CLAUDE.md
-  ralph.yml                             # Copy
-  poll-log.txt                          # Board scan audit log
-```
+<!-- BM:WORKSPACE_LAYOUT -->
+<!-- /BM:WORKSPACE_LAYOUT -->
 
 ### Knowledge Resolution
 
@@ -53,9 +45,9 @@ Knowledge is resolved by specificity (most general to most specific):
 | Level | Path |
 |-------|------|
 | Team knowledge | `team/knowledge/` |
-| Project knowledge | `team/projects/<project>/knowledge/` |
+<!-- BM:PROJECT_KNOWLEDGE -->
+<!-- /BM:PROJECT_KNOWLEDGE -->
 | Member knowledge | `team/members/engineer-bob/knowledge/` |
-| Member-project knowledge | `team/members/engineer-bob/projects/<project>/knowledge/` |
 | Hat knowledge (various) | `team/members/engineer-bob/hats/<hat>/knowledge/` |
 
 More specific knowledge takes precedence.
@@ -67,7 +59,8 @@ All applicable invariants MUST be satisfied:
 | Level | Path |
 |-------|------|
 | Team invariants | `team/invariants/` |
-| Project invariants | `team/projects/<project>/invariants/` |
+<!-- BM:PROJECT_INVARIANTS -->
+<!-- /BM:PROJECT_INVARIANTS -->
 | Member invariants | `team/members/engineer-bob/invariants/` |
 
 Critical member invariant: `team/members/engineer-bob/invariants/design-quality.md`
@@ -98,7 +91,7 @@ The team repo is auto-detected from `team/`'s git remote.
 
 **Supervised mode (GitHub comment-based)** — human gates at two decision points:
 - `human:po:plan-review` — planning artifacts approval (design doc + story breakdown)
-- `human:po:accept` — epic acceptance
+- `human:po:accept` — work acceptance
 
 At these gates, the system checks for human response comments containing approval or rejection. All other transitions auto-advance.
 
