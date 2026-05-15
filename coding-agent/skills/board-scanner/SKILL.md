@@ -63,53 +63,31 @@ responsible for querying the issue type themselves.
 Skip items with `snt:` prefix — those belong to the sentinel's scanner.
 Skip items with `cos:` prefix — those belong to the chief-of-staff's scanner.
 
-**Human gates (highest priority — all issue types):**
+Principle: **finish in-progress work before starting new work.** `eng:*`
+statuses closer to `done` have higher priority. Human gates (`human:*`)
+are lowest priority — the PO advances issues directly on GitHub. The
+`po_gate` hat detects those actions but does not need eager polling.
 
-All `human:*` statuses are dispatched to the `po_gate` hat. The `po_gate`
-hat determines per-status behavior including auto-advance label support
-(`plan:auto` at `human:po:plan-review`, `accept:auto` at `human:po:accept`).
-
-| # | Status | Event |
-|---|--------|-------|
-| 1 | `human:po:accept` | `po.gate` |
-| 2 | `human:po:plan-review` | `po.gate` |
-| 3 | `human:po:triage` | `po.gate` |
-| 4 | `human:po:backlog` | `po.gate` |
-
-**Planning & management (epic/story — closer to done wins):**
+All `human:*` statuses dispatch to `po.gate`. The `po_gate` hat determines
+per-status behavior including auto-advance label support (`plan:auto` at
+`human:po:plan-review`, `accept:auto` at `human:po:accept`).
 
 | # | Status | Event |
 |---|--------|-------|
-| 5 | `eng:lead:breakdown` | `lead.breakdown` |
-| 6 | `eng:lead:monitor` | `lead.monitor` |
-| 7 | `eng:lead:plan` | `lead.plan` |
-
-**Implementation (story — closer to done wins):**
-
-| # | Status | Event |
-|---|--------|-------|
-| 8 | `eng:qe:verify` | `qe.verify` |
-| 9 | `eng:dev:implement` | `dev.implement` |
-
-**Bug lifecycle (closer to done wins):**
-
-| # | Status | Event |
-|---|--------|-------|
-| 10 | `eng:qe:monitor` | `qe.monitor` |
-| 11 | `eng:qe:investigate` | `qe.investigate` |
-
-**Content (docs stories — closer to done wins):**
-
-| # | Status | Event |
-|---|--------|-------|
-| 12 | `eng:cw:review` | `cw.review` |
-| 13 | `eng:cw:write` | `cw.write` |
-
-**Infrastructure (service hat):**
-
-| # | Status | Event |
-|---|--------|-------|
-| 14 | `eng:sre:setup` | `sre.setup` |
+| 1 | `eng:qe:verify` | `qe.verify` |
+| 2 | `eng:cw:review` | `cw.review` |
+| 3 | `eng:qe:monitor` | `qe.monitor` |
+| 4 | `eng:dev:implement` | `dev.implement` |
+| 5 | `eng:cw:write` | `cw.write` |
+| 6 | `eng:qe:investigate` | `qe.investigate` |
+| 7 | `eng:sre:setup` | `sre.setup` |
+| 8 | `eng:lead:breakdown` | `lead.breakdown` |
+| 9 | `eng:lead:monitor` | `lead.monitor` |
+| 10 | `eng:lead:plan` | `lead.plan` |
+| 11 | `human:po:accept` | `po.gate` |
+| 12 | `human:po:plan-review` | `po.gate` |
+| 13 | `human:po:triage` | `po.gate` |
+| 14 | `human:po:backlog` | `po.gate` |
 
 No work found → emit `LOOP_COMPLETE`.
 

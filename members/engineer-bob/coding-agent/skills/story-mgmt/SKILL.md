@@ -122,6 +122,58 @@ Each reviewer MUST produce structured feedback in this format:
 - When task files are revised, you MUST also update the catalog README to reflect any changes to task titles, complexity assessments, requirement traceability, or acceptance criteria
 - If revisions are made, the revised task files are included in the commit at Step 8
 
+## Story Issue Body Convention
+
+When creating or updating a story issue, the body MUST follow this template. This is the authoritative story body format — all paths that create story issues (this skill, `lead_breakdown` hat, or any other) MUST use it.
+
+**Spec URL convention:** `https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<issue#>-<slug>/<file>` — see `team/PROCESS.md` "Issue Body Conventions" for details. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` or from `git -C team remote get-url origin`.
+
+### Story Body Template
+
+```markdown
+## Objective
+
+<Objective — from STORY-NN in plan.md (PDD mode) or from the story description (description mode)>
+
+## Requirements
+
+| ID | Requirement |
+|----|-------------|
+| CATG-01 | <full requirement text from requirements.md> |
+
+## Acceptance Criteria
+
+| ID | Criterion |
+|----|-----------|
+| AC-01 | <full GWT text from design.md> |
+
+## Implementation Guidance
+
+<Approach from plan.md or description — not exhaustive, just the key direction>
+
+## Demo
+
+<Demo description from plan.md, or expected outcome for description mode>
+
+## Dependencies
+
+- #N (STORY-NN)
+
+## Specs
+
+- [Epic Design](<spec URL>/design.md)
+- [Epic Requirements](<spec URL>/requirements.md)
+- [Epic Plan](<spec URL>/plan.md)
+```
+
+**Population rules:**
+- For each CATEGORY-NN ID in the story's Requirements field, look up the full requirement text from the corresponding entry in `requirements.md`
+- For each AC-NN ID in the story's Acceptance Criteria field, look up the full GWT text from the corresponding entry in `design.md`'s Acceptance Criteria section
+- Dependencies: use `#N` issue links when the dependency story's issue number is known; otherwise use STORY-NN IDs
+- Specs section: link to the parent epic's spec artifacts using clickable GitHub URLs
+- For standalone stories (no parent epic / description mode): omit sections that don't apply (e.g., Specs links to parent epic, Dependencies). Requirements and ACs may be inline rather than looked up from spec files
+- After task decomposition (Step 9), a Task Catalog link section is appended to the body
+
 ## Steps
 
 ### 1. Detect Input Mode
@@ -133,7 +185,7 @@ Automatically determine whether input is a description or PDD plan.
 - If file exists, you MUST read it and check for PDD plan structure (checklist, numbered stories with `STORY-NN` IDs)
 - If file contains PDD checklist format, you MUST set mode to "pdd"
 - If input is a story issue number, you MUST load the issue body from GitHub and set mode to "description"
-- You MUST ensure a GitHub story issue exists for this work item. If invoked with an existing issue number, use that issue. Otherwise, create a new story issue using the `github-project` skill. If the story has a parent epic, link it as a sub-issue. The issue number becomes `{issue#}` for the directory name.
+- You MUST ensure a GitHub story issue exists for this work item. If invoked with an existing issue number, use that issue. Otherwise, create a new story issue using the `github-project` skill with a body following the Story Body Template (see "Story Issue Body Convention" section above). If the story has a parent epic, link it as a sub-issue. The issue number becomes `{issue#}` for the directory name.
 - If input is text or file without PDD structure, you MUST set mode to "description"
 - You MUST inform user which mode was detected (interactive) or log the detection (auto)
 - You MUST validate that PDD plans follow expected format with `STORY-NN` numbered stories
@@ -355,6 +407,26 @@ After committing, you MUST ask the user whether to decompose the next story or p
 
 Move stories to `human:po:plan-review` for human approval. In interactive mode, open a PR first.
 
+**Story Issue Body Update (both modes):**
+
+Before transitioning to `human:po:plan-review`, you MUST append a Task Catalog link to the story issue body:
+
+1. Check the story issue for a `tasks:inline` label. If present, skip this step — `lead_breakdown` will handle inline task content later.
+2. Read the current story issue body via `query-issues.sh --type single --issue <N>`.
+3. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` (workspace root), or from `git -C team remote get-url origin`.
+4. Append the following section to the existing body:
+
+   ```markdown
+
+   ## Task Catalog
+
+   [View task catalog](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<epic#>-<slug>/tasks/<story#>-<slug>/README.md) — N tasks
+   ```
+
+   For standalone stories (no parent epic), use: `specs/<project>/tasks/<story#>-<slug>/README.md`
+
+5. Write the updated body to a temp file and call `update-issue.sh --issue <N> --body-file <path>`.
+
 **Constraints (interactive mode):**
 - You MUST open a PR on the team repo with the task files, linked to the story issue(s). Use a single PR per session, not one per story. The PR title should reference the epic (e.g., `[#1] Tasks: Tmux agent sessions`). The PR body should list all stories decomposed in this session and link to each catalog README.
 - If a PR already exists on the current branch, push to the same branch and update the PR body to include the new stories.
@@ -363,10 +435,10 @@ Move stories to `human:po:plan-review` for human approval. In interactive mode, 
 
 **Constraints (auto mode):**
 - You MUST NOT open a PR — specs are committed directly to the team repo
-- You MUST move the story to `human:po:plan-review` using the `status-workflow` skill
-- You MUST post a summary comment on the story issue with links to the task catalog
+- You MUST NOT transition the story status — the calling hat's quality gate handles the transition to `human:po:plan-review` after adversarial review passes
+- You MUST NOT post comments — the calling hat handles comment attribution
 - You MUST write a completion summary to the catalog README
-- **END** — the skill exits here in auto mode. Steps 10–12 run after human approval in interactive mode only. In auto mode, when the `po_gate` hat detects approval at `human:po:plan-review`, it routes the story to `eng:lead:breakdown`, where the `lead_breakdown` hat externalizes the tasks (creating GitHub issues from `.code-task-NN.md` files based on story labels) and advances the story to `eng:dev:implement`.
+- **END of decomposition flow** — the skill exits here in auto mode. Steps 10–11 are interactive only. Step 12 (Externalize) can be invoked separately later (see "Externalize Entry Point" below).
 
 ### 10. Await Approval (Interactive Only)
 
@@ -386,13 +458,16 @@ Merge the approved PR.
 - You MUST merge the PR using the `github-project` skill only after the user confirms
 - You MUST NOT merge without user confirmation
 
-### 12. Externalize and Advance (Interactive Only)
+### 12. Externalize
 
-Externalize tasks to GitHub and advance stories to implementation. In auto mode, this is handled by the `lead_breakdown` hat at `eng:lead:breakdown` after human approval at `human:po:plan-review`.
+Externalize tasks to GitHub. This step works in **both modes** and can be invoked in two ways:
+
+1. **As part of the full decomposition flow** (interactive mode, Steps 1-12 in sequence)
+2. **Standalone via the externalize entry point** (auto mode, invoked by the `lead_breakdown` hat after plan approval — see "Externalize Entry Point" below)
 
 **Task externalization:**
 
-Handle externalization for ALL stories decomposed in this session, based on labels on each parent story issue:
+Handle externalization for ALL stories in scope, based on labels on each parent story issue:
 
 | Label | Behavior | GitHub Impact |
 |-------|----------|---------------|
@@ -402,20 +477,40 @@ Handle externalization for ALL stories decomposed in this session, based on labe
 
 **Externalization constraints:**
 - You MUST check for `tasks:inline` and `tasks:off` labels on each parent story issue before externalizing
-- Default (no label): create GitHub issues with `agent-internal` label for each task
-- `tasks:inline`: add a structured task catalog section to the parent story issue body
+- Default (no label): create GitHub issues with `agent-internal` label for each task. Read each `.code-task-NN.md` file to extract title and objective. Create a Task-type sub-issue of the parent Story using the sub-issue operation.
+- `tasks:inline`: add a structured task catalog section to the parent story issue body (replacing the Task Catalog link section if one was appended in Step 9)
 - `tasks:off`: skip externalization entirely — repo files only
 - The `.code-task-NN.md` files and catalog README are ALWAYS generated regardless of externalization mode
 - Each story's tasks are externalized independently — different stories in the same batch MAY have different externalization modes based on their labels
 
-**Status transition:**
+**Status transition (interactive mode only):**
 - You MUST move all decomposed stories to `eng:dev:implement` using the `status-workflow` skill
+- In auto/externalize-only mode: the calling hat handles status transitions — do NOT transition status
 
 **Report results:**
 - You MUST list all generated code task files with their paths
 - You MUST report the externalization mode used for each story and the results (issues created, story updated, or repo-only)
 - For PDD mode: you MUST provide the story demo requirements for context
 - For description mode: you MUST provide a brief summary of what was created
+
+## Externalize Entry Point
+
+This skill can be invoked with `operation: externalize` to run Step 12 only, skipping Steps 1-11. This is used by the `lead_breakdown` hat in auto mode after plan approval.
+
+**Parameters for externalize entry point:**
+- `issue` (required): Story issue number
+- `project` (required): Project name (derived from `project/<name>` label)
+
+**Behavior:**
+1. Read the story issue to get labels and locate the task catalog
+2. Find the task catalog README at `team/specs/<project>/<epic#>-<slug>/tasks/<issue#>-<slug>/README.md` (or `team/specs/<project>/tasks/<issue#>-<slug>/README.md` for standalone stories)
+3. Run Step 12 (Externalize) for this story
+4. **Verify:** For default mode, confirm each created task issue has the `agent-internal` label and is a sub-issue of the parent story. For `tasks:inline`, confirm the story body was updated. If any verification fails, raise an error.
+5. Return the externalization results (mode used, issues created, verification status)
+
+**What this operation does NOT do (caller responsibilities):**
+- Does NOT transition status — the calling hat handles `eng:dev:implement`
+- Does NOT post comments — the calling hat handles comment attribution
 
 ## Code Task Format Specification
 

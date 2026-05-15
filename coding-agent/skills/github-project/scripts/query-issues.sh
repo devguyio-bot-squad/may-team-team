@@ -41,6 +41,8 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "❌ ERROR: Unknown argument: $1"
+      echo "Usage: query-issues.sh --type <label|status|milestone|assignee|single|issue-type> [--label <value>] [--status <value>] [--milestone <value>] [--assignee <value>] [--issue <number>]"
+      echo "Example: query-issues.sh --type single --issue 15"
       exit 1
       ;;
   esac

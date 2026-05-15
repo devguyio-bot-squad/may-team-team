@@ -117,9 +117,9 @@ The team repo (`$TEAM_REPO`) is auto-detected from `team/`'s git remote.
 
 ## Hard Constraints
 
-**NEVER use `gh` CLI directly.** All GitHub operations — issues, projects, PRs, milestones, comments, labels, status transitions — MUST go through the `github-project` skill scripts. If a script doesn't exist for an operation, create one or extend an existing script. Do NOT fall back to raw `gh` commands.
+**NEVER use `gh` CLI directly.** You MUST load the `github-project` skill for all GitHub operations — issues, projects, PRs, milestones, comments, labels, status transitions. Do NOT fall back to raw `gh` commands or manually invoke skill scripts.
 
-Why: The skill scripts manage board state caching, write-through invalidation, persisted metadata, and attribution. Bypassing them corrupts the cache and wastes API quota.
+Why: The skill manages board state caching, write-through invalidation, persisted metadata, and attribution. Bypassing it corrupts the cache and wastes API quota.
 
 If you find yourself about to run a `gh` command directly, STOP. Load the `github-project` skill and use the appropriate operation.
 

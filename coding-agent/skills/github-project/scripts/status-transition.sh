@@ -56,6 +56,13 @@ if [ -z "$OPTION_ID" ] || [ "$OPTION_ID" = "null" ]; then
   exit 1
 fi
 
+# Pre-flight: verify option ID is a plausible 8-char hex value
+if ! echo "$OPTION_ID" | grep -qE '^[0-9a-f]{8}$'; then
+  echo "❌ ERROR: Resolved option ID '$OPTION_ID' for status '$TO_STATUS' is not a valid 8-char hex ID"
+  echo "This may indicate a corrupted field data response. Aborting to prevent silent status clear."
+  exit 1
+fi
+
 # Get item ID for the issue with validation
 ITEM_ID=$(gh project item-list "$PROJECT_NUM" --owner "$OWNER" --format json 2>&1 \
   | jq -r ".items[] | select(.content.number == $ISSUE_NUM) | .id")
@@ -98,32 +105,64 @@ fi
 
 # Verify the update succeeded by querying the current status
 # CRITICAL: Use -F (uppercase) for GraphQL ID types, not -f (lowercase)
-echo "→ Verifying status update..."
-sleep 1
-CURRENT_STATUS=$(gh api graphql -f query='
-query($itemId: ID!) {
-  node(id: $itemId) {
-    ... on ProjectV2Item {
-      fieldValueByName(name: "Status") {
-        ... on ProjectV2ItemFieldSingleSelectValue {
-          name
+_verify_status() {
+  gh api graphql -f query='
+  query($itemId: ID!) {
+    node(id: $itemId) {
+      ... on ProjectV2Item {
+        fieldValueByName(name: "Status") {
+          ... on ProjectV2ItemFieldSingleSelectValue {
+            name
+          }
         }
       }
     }
-  }
-}' -F itemId="$ITEM_ID" \
-  | jq -r '.data.node.fieldValueByName.name')
+  }' -F itemId="$ITEM_ID" \
+    | jq -r '.data.node.fieldValueByName.name // empty'
+}
+
+echo "→ Verifying status update..."
+sleep 2
+CURRENT_STATUS=$(_verify_status)
+
+# Retry once if verification fails (GitHub API eventual consistency)
+if [ -z "$CURRENT_STATUS" ] || [ "$CURRENT_STATUS" = "null" ] || [ "$CURRENT_STATUS" != "$TO_STATUS" ]; then
+  echo "→ First verification attempt failed (got: '${CURRENT_STATUS:-<empty>}'), retrying in 3s..."
+  sleep 3
+  CURRENT_STATUS=$(_verify_status)
+fi
+
+if [ -z "$CURRENT_STATUS" ] || [ "$CURRENT_STATUS" = "null" ]; then
+  echo "❌ ERROR: Status verification failed — field is null/empty after update!"
+  echo "The gh project item-edit command silently cleared the status field."
+  echo "Used option ID: $OPTION_ID for status: $TO_STATUS"
+  echo "This likely means the option ID was invalid for this project."
+  if [ "$FROM_STATUS" != "(previous)" ]; then
+    echo "→ Attempting to restore previous status '$FROM_STATUS'..."
+    RESTORE_OPTION_ID=$(echo "$FIELD_DATA" | jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="'"$FROM_STATUS"'") | .id')
+    if [ -n "$RESTORE_OPTION_ID" ] && [ "$RESTORE_OPTION_ID" != "null" ]; then
+      gh project item-edit \
+        --project-id "$PROJECT_ID" \
+        --id "$ITEM_ID" \
+        --field-id "$STATUS_FIELD_ID" \
+        --single-select-option-id "$RESTORE_OPTION_ID" 2>&1
+      echo "→ Restore attempted with option ID: $RESTORE_OPTION_ID"
+    fi
+  fi
+  exit 1
+fi
 
 if [ "$CURRENT_STATUS" != "$TO_STATUS" ]; then
   echo "❌ ERROR: Status verification failed!"
   echo "Expected: $TO_STATUS"
   echo "Actual: $CURRENT_STATUS"
+  echo "Used option ID: $OPTION_ID"
   echo "The gh project item-edit command appeared to succeed but the status did not change."
   echo "This may indicate a permissions issue or an API error."
   exit 1
 fi
 
-echo "✓ Status verified: issue #$ISSUE_NUM is now '$CURRENT_STATUS'"
+echo "✓ Status verified: issue #$ISSUE_NUM is now '$CURRENT_STATUS' (option: $OPTION_ID)"
 
 # Add attribution comment documenting the transition
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
