@@ -62,9 +62,9 @@ backend: claude
 **Rule**: Include content inside `+agent:claude-code` blocks. Strip all tag lines.
 Exclude content inside blocks for other agents.
 
-### 2. CLAUDE.md → CLAUDE.md Rename
-Profile uses `CLAUDE.md`. Team repo uses `CLAUDE.md`. When copying any file
-named `CLAUDE.md` from the profile, rename it to `CLAUDE.md`.
+### 2. context.md → CLAUDE.md Rename
+Profile uses `context.md`. Team repo uses `CLAUDE.md`. When copying any file
+named `context.md` from the profile, rename it to `CLAUDE.md`.
 
 ### 3. Member Placeholders
 Profile role files contain `chief-of-staff-kevin`, `chief-of-staff`, `kevin`.
