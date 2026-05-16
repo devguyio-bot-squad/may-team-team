@@ -12,3 +12,4 @@ This file catalogs all work items and their planning artifacts. Each entry links
 | [#17 Dashboard Chat — Bridge chat integration](https://github.com/devguyio-bot-squad/may-team-team/issues/17) | Epic | triage | [specs/botminter/17-dashboard-chat/](botminter/17-dashboard-chat/) |
 | [#34 bm chat/meetings missing GitHub App creds](https://github.com/devguyio-bot-squad/may-team-team/issues/34) | Bug | task-decomposition | [tasks/34-missing-github-app-creds-chat/](botminter/tasks/34-missing-github-app-creds-chat/) |
 | [#13 Simplify workspace sync model](https://github.com/devguyio-bot-squad/may-team-team/issues/13) | Story | task-decomposition | [tasks/13-simplify-workspace-sync-model/](botminter/tasks/13-simplify-workspace-sync-model/) |
+| [#39 bm teams sync broken surfacing](https://github.com/devguyio-bot-squad/may-team-team/issues/39) | Bug | task-decomposition | [tasks/39-sync-broken-surfacing/](botminter/tasks/39-sync-broken-surfacing/) |
