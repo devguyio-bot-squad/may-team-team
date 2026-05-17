@@ -48,7 +48,7 @@ if [ -z "$FROM_STATUS" ]; then
 fi
 
 # Resolve option ID for target status with validation
-OPTION_ID=$(echo "$FIELD_DATA" | jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="'"$TO_STATUS"'") | .id')
+OPTION_ID=$(echo "$FIELD_DATA" | jq -r --arg s "$TO_STATUS" '.fields[] | select(.name=="Status") | .options[] | select(.name==$s) | .id')
 if [ -z "$OPTION_ID" ] || [ "$OPTION_ID" = "null" ]; then
   echo "❌ ERROR: Status '$TO_STATUS' not found in project"
   echo "Available statuses:"
@@ -64,7 +64,7 @@ if ! echo "$OPTION_ID" | grep -qE '^[0-9a-f]{8}$'; then
 fi
 
 # Get item ID for the issue with validation
-ITEM_ID=$(gh project item-list "$PROJECT_NUM" --owner "$OWNER" --format json 2>&1 \
+ITEM_ID=$(project_items_json 2>&1 \
   | jq -r ".items[] | select(.content.number == $ISSUE_NUM) | .id")
 
 if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
@@ -77,7 +77,7 @@ if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
 
   # Retry getting the item ID
   sleep 2
-  ITEM_ID=$(gh project item-list "$PROJECT_NUM" --owner "$OWNER" --format json 2>&1 \
+  ITEM_ID=$(project_items_json 2>&1 \
     | jq -r ".items[] | select(.content.number == $ISSUE_NUM) | .id")
 
   if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
@@ -139,7 +139,7 @@ if [ -z "$CURRENT_STATUS" ] || [ "$CURRENT_STATUS" = "null" ]; then
   echo "This likely means the option ID was invalid for this project."
   if [ "$FROM_STATUS" != "(previous)" ]; then
     echo "→ Attempting to restore previous status '$FROM_STATUS'..."
-    RESTORE_OPTION_ID=$(echo "$FIELD_DATA" | jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="'"$FROM_STATUS"'") | .id')
+    RESTORE_OPTION_ID=$(echo "$FIELD_DATA" | jq -r --arg s "$FROM_STATUS" '.fields[] | select(.name=="Status") | .options[] | select(.name==$s) | .id')
     if [ -n "$RESTORE_OPTION_ID" ] && [ "$RESTORE_OPTION_ID" != "null" ]; then
       gh project item-edit \
         --project-id "$PROJECT_ID" \

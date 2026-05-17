@@ -71,8 +71,8 @@ case "$QUERY_TYPE" in
       exit 1
     fi
 
-    gh project item-list "$PROJECT_NUM" --owner "$OWNER" --format json \
-      --jq ".items[] | select(.status == \"$STATUS\")"
+    project_items_json \
+      | jq --arg s "$STATUS" '.items[] | select(.status == $s)'
     ;;
 
   milestone)
