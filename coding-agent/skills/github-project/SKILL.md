@@ -502,6 +502,45 @@ mutation {
 
 ---
 
+### 12. Status Reconciliation
+
+**Why statuses disappear:** The Status field is a `ProjectV2SingleSelectField` — a custom field where each option has an internal 8-char hex ID. When someone edits the field in the GitHub Projects UI (reorder options, change a color, add/remove an option), GitHub's `updateProjectV2Field` mutation regenerates ALL option IDs. The option names stay the same, but every item's status value was referencing an old option ID that no longer exists — so GitHub shows them as null. This is a GitHub Projects v2 footgun, not a bug in our scripts.
+
+**How we detect it:** A board should NEVER have items with null/empty status. If ANY item has no status, it's a smoking gun for an option-ID regeneration event. The `board-view.sh` script emits a stderr warning when it detects null-status items.
+
+**How we fix it:** GitHub's GraphQL timeline API records every status transition via `ProjectV2ItemStatusChangedEvent`, which includes `previousStatus` and `status` fields — the same data visible in the GitHub UI's activity sidebar. The reconciliation script queries the last transition for each null-status item, extracts the status name, resolves it to a fresh option ID from the current field data, and re-applies it.
+
+**When to run it:** If ANY operation returns items with null/empty status:
+- Board-view showing no-status items (stderr warning will fire)
+- `query-issues --type status` returning empty for a known status column
+- `query-issues --type single` showing no project status on an issue
+- `status-transition` failing because the current status is null
+
+Run `status-reconcile.sh` before proceeding with other operations.
+
+**Parameters:**
+- `--dry-run` (optional) — preview what would be restored without applying changes
+
+**Usage:**
+
+Claude will run:
+```bash
+# Preview what would be restored
+bash scripts/status-reconcile.sh --dry-run
+
+# Apply reconciliation
+bash scripts/status-reconcile.sh
+```
+
+**Handles edge cases:**
+- Draft items (no issue number) → skipped
+- Issues with no status transition history → skipped with log
+- Status names not found in current field options → skipped with log
+
+**Result:** Board statuses restored from timeline history. No attribution comments posted — reconciliation is a silent operation.
+
+---
+
 ## Examples
 
 ### Example 1: Create and Triage an Epic
@@ -601,6 +640,20 @@ For detailed documentation:
 3. Retry the operation
 
 See [Troubleshooting Guide](references/troubleshooting.md) for complete error reference.
+
+### Mass null statuses on the board
+
+**Cause:** Someone edited the Status field in the GitHub Projects UI (reordered options, changed colors, added/removed an option). This triggers `updateProjectV2Field` which regenerates all option IDs. Items still reference old IDs, so GitHub shows their statuses as null.
+
+**Symptoms:** `board-view.sh` emits `⚠️ STATUS WIPE DETECTED`, most or all items have no status, `query-issues --type status` returns empty for known statuses.
+
+**Solution:**
+```bash
+bash scripts/status-reconcile.sh --dry-run  # Preview first
+bash scripts/status-reconcile.sh             # Apply
+```
+
+The script recovers each item's last status from GitHub's timeline API (`ProjectV2ItemStatusChangedEvent`) and re-applies it using the current (fresh) option IDs.
 
 ---
 
