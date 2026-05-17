@@ -38,6 +38,10 @@ Board scanning is handled by an auto-inject skill, not a hat.
 | Hat knowledge (pr_gate) | `team/members/sentinel-heimdel/hats/pr_gate/knowledge/` |
 | Hat knowledge (pr_triage) | `team/members/sentinel-heimdel/hats/pr_triage/knowledge/` |
 
+### Merge Strategy
+
+Use **rebase merge** (`gh pr merge --rebase`) when the PR has a sensible number of well-structured commits (clear messages, logical units of change). Fall back to **squash merge** (`gh pr merge --squash`) when commits are messy, fixup-heavy, or don't tell a coherent story individually.
+
 ### Merge Gate Configuration
 
 Per-project merge gate configuration lives at:
