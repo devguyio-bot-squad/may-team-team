@@ -1,0 +1,18 @@
+# botminter — workspace environment
+# Copy to <workspace>/.envrc.d/botminter.sh and fill in values.
+#
+# Required for: just e2e, just test (in projects/botminter/)
+# See: members/sentinel-heimdel/projects/botminter/knowledge/merge-gate.md
+#
+# Setup:
+#   mkdir -p .envrc.d
+#   cp team/projects/botminter/envrc.example .envrc.d/botminter.sh
+#   # edit .envrc.d/botminter.sh with real values
+#   direnv allow
+
+export TESTS_GH_TOKEN="${GH_TOKEN}"          # Member's own token usually works
+export TESTS_GH_ORG=""                       # GitHub org for test repos (e.g., devguyio-bot-squad)
+export TESTS_APP_ID=""                       # Test GitHub App — numeric ID
+export TESTS_APP_CLIENT_ID=""                # Test GitHub App — client ID string
+export TESTS_APP_INSTALLATION_ID=""          # Test GitHub App — installation ID
+export TESTS_APP_PRIVATE_KEY_FILE=""         # Absolute path to test app .pem private key
