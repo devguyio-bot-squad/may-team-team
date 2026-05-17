@@ -24,8 +24,8 @@ project-repo-engineer/               # Project repo clone (agent CWD)
     knowledge/, invariants/             # Team-level
     members/{{member_dir}}/                    # Member config
     projects/<project>/                 # Project-specific
-  PROMPT.md → team/members/{{member_dir}}/PROMPT.md
-  CLAUDE.md → team/members/{{member_dir}}/CLAUDE.md
+  PROMPT.md                      # Copy from team/members/{{member_dir}}/
+  CLAUDE.md                      # Copy from team/members/{{member_dir}}/
   ralph.yml                             # Copy
   poll-log.txt                          # Board scan audit log
 ```
@@ -92,7 +92,7 @@ Skills, sub-agents, and settings are scoped across multiple levels using a `codi
 | What changes | How it reaches the agent |
 |---|---|
 | Knowledge, invariants, PROCESS.md, team CLAUDE.md | Auto — agent pulls `team/` every scan, reads directly |
-| Member PROMPT.md, CLAUDE.md | Auto — workspace files are symlinks into `team/` |
+| Member PROMPT.md, CLAUDE.md | **Manual** — requires `bm teams sync` (re-copy when source is newer) |
 | Skills, agents (all levels) | Auto — read via `team/` paths (skills.dirs) or symlinks (.claude/agents/) |
 | ralph.yml | **Manual** — requires `just sync` + agent restart |
 | settings.local.json | **Manual** — requires `just sync` (re-copy) |

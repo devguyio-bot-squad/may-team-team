@@ -62,9 +62,9 @@ backend: claude
 **Rule**: Include content inside `+agent:claude-code` blocks. Strip all tag lines.
 Exclude content inside blocks for other agents.
 
-### 2. CLAUDE.md → CLAUDE.md Rename
-Profile uses `CLAUDE.md`. Team repo uses `CLAUDE.md`. When copying any file
-named `CLAUDE.md` from the profile, rename it to `CLAUDE.md`.
+### 2. context.md → CLAUDE.md Rename
+Profile uses `context.md`. Team repo uses `CLAUDE.md`. When copying any file
+named `context.md` from the profile, rename it to `CLAUDE.md`.
 
 ### 3. Member Placeholders
 Profile role files contain `chief-of-staff-kevin`, `chief-of-staff`, `kevin`.
@@ -131,9 +131,9 @@ member's brain prompt has stale content (re-run sync to re-render).
 2. Locate profile source at `projects/botminter/profiles/<name>/`
 3. **Team-level**: Diff profile source (excluding `roles/`, `.schema/`) against `team/`:
    - Apply agent tag filtering (Rule 1) to `.md`/`.yml`/`.yaml`/`.sh` files
-   - Rename `CLAUDE.md` → `CLAUDE.md` (Rule 2)
+   - Rename `context.md` → `CLAUDE.md` (Rule 2)
    - Compare: `coding-agent/`, `knowledge/`, `invariants/`, `PROCESS.md`,
-     `CLAUDE.md`→`CLAUDE.md`, `workflows/`, `botminter.yml`
+     `context.md`→`CLAUDE.md`, `workflows/`, `botminter.yml`
 4. **Member-level**: For each hired member in `team/members/`:
    - Read role from `team/members/<member>/botminter.yml`
    - Diff `profiles/<name>/roles/<role>/` against `team/members/<member>/`
