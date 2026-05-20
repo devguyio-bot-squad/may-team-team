@@ -139,7 +139,7 @@ When creating or updating a story issue, the body MUST follow this template. Thi
 
 | ID | Requirement |
 |----|-------------|
-| CATG-01 | <full requirement text from requirements.md> |
+| CATG-01 | <full requirement text from project requirements catalogue> |
 
 ## Acceptance Criteria
 
@@ -162,12 +162,12 @@ When creating or updating a story issue, the body MUST follow this template. Thi
 ## Specs
 
 - [Epic Design](<spec URL>/design.md)
-- [Epic Requirements](<spec URL>/requirements.md)
+- [Project Requirements](<project requirements URL>)
 - [Epic Plan](<spec URL>/plan.md)
 ```
 
 **Population rules:**
-- For each CATEGORY-NN ID in the story's Requirements field, look up the full requirement text from the corresponding entry in `requirements.md`
+- For each CATEGORY-NN ID in the story's Requirements field, look up the full requirement text from `team/specs/{project}/requirements/{domain}.md` where `{domain}` is the category prefix in lowercase (e.g., KMS-01 → `kms.md`)
 - For each AC-NN ID in the story's Acceptance Criteria field, look up the full GWT text from the corresponding entry in `design.md`'s Acceptance Criteria section
 - Dependencies: use `#N` issue links when the dependency story's issue number is known; otherwise use STORY-NN IDs
 - Specs section: link to the parent epic's spec artifacts using clickable GitHub URLs
@@ -197,7 +197,7 @@ Parse and understand the input content based on detected mode.
 **Constraints:**
 - For PDD mode: you MUST parse the story breakdown and extract stories/checklist status
 - For PDD mode: you MUST determine target story based on story_number parameter or first uncompleted story
-- For PDD mode: you MUST locate the parent design artifacts (`requirements.md`, `design.md`) and extract `CATEGORY-NN` and `AC-NN` IDs relevant to the target story
+- For PDD mode: you MUST locate the parent design artifacts (project requirements catalogue at `team/specs/{project}/requirements/`, `design.md`) and extract `CATEGORY-NN` and `AC-NN` IDs relevant to the target story
 - For description mode: you MUST identify the core functionality being requested
 - You MUST extract any technical requirements, constraints, or preferences mentioned
 - You MUST determine the appropriate complexity level (Low/Medium/High)
@@ -331,7 +331,7 @@ Create task files, catalog README, and organize output.
 **Parent Story:** [story reference or issue link]
 **Parent Epic:** [epic reference or issue link, if applicable]
 **Design Doc:** [path to design.md]
-**Requirements Doc:** [path to requirements.md]
+**Requirements Catalogue:** [path to team/specs/{project}/requirements/]
 
 ## Decisions (auto mode only)
 

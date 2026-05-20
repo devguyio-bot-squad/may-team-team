@@ -24,7 +24,7 @@ All catalogable entities produced by this skill receive stable IDs for cross-ref
 | Entity | Format | Scope | Assigned By |
 |--------|--------|-------|-------------|
 | Question | `Q-NN` | Per idea-honing session | Sequential in Step 4 |
-| Requirement | `CATEGORY-NN` | Per requirements.md, restarts per category | Sequential in Step 7. Category: 3-5 uppercase chars abbreviated from heading. Number: zero-padded. |
+| Requirement | `CATEGORY-NN` | Per domain file in project requirements catalogue, continues from highest existing ID | Sequential in Step 7. Category: derived from domain filename uppercased (e.g., `kms.md` → `KMS`). Filename MUST be 3-5 lowercase chars. Number: zero-padded. |
 | Research Topic | `R-NN` | Per epic | Sequential in Step 5 |
 | Acceptance Criterion | `AC-NN` | Per design doc | Sequential in Step 8 |
 | Decision | `D-NN` | Per design doc | Sequential in Step 8 |
@@ -102,7 +102,7 @@ This skill supports crash recovery and resumability. At the start of each run, c
 | Planning setup | 2 | `{epic_dir}/` directory exists with `rough-idea.md` containing `epic_issue:` frontmatter |
 | Idea-honing | 4 | `{epic_dir}/idea-honing.md` has Q-NN entries with answers |
 | Research | 5 | `{epic_dir}/research/` directory contains R-NN files |
-| Requirements | 7 | `{epic_dir}/requirements.md` exists with CATEGORY-NN entries |
+| Requirements | 7 | `{epic_dir}/requirements-manifest.md` exists listing domain files written |
 | Design | 8 | `{epic_dir}/design.md` exists with AC-NN entries |
 | Plan | 9 | `{epic_dir}/plan.md` exists with STORY-NN entries |
 
@@ -121,9 +121,9 @@ After completing each major phase, you MUST commit the artifacts in `{epic_dir}/
 |-------------|-----------------|----------------------|
 | Idea-honing (Step 4) | `idea-honing.md` | `docs(specs): complete idea-honing for {epic_name}` |
 | Research (Step 5) | `research/*.md` | `docs(specs): complete research for {epic_name}` |
-| Requirements (Step 7) | `requirements.md` | `docs(specs): extract requirements for {epic_name}` |
+| Requirements (Step 7) | `team/specs/{project}/requirements/{domain}.md`, `{epic_dir}/requirements-manifest.md` | `docs(specs): extract requirements for {epic_name}` |
 | Design (Step 8) | `design.md` | `docs(specs): create design for {epic_name}` |
-| Story breakdown (Step 9) | `plan.md`, updated `requirements.md` (traceability) | `docs(specs): create story breakdown for {epic_name}` |
+| Story breakdown (Step 9) | `plan.md` | `docs(specs): create story breakdown for {epic_name}` |
 
 **Constraints:**
 - You MUST `git add` and `git commit` the phase artifacts after each phase completes
@@ -225,7 +225,7 @@ Set up a directory structure to organize all planning artifacts created during t
 - If existing artifacts are found, you MUST identify the last completed phase and skip to the next incomplete phase:
   - If `plan.md` exists with STORY-NN entries → all phases complete, proceed to Step 10
   - If `design.md` exists with AC-NN entries → resume at Step 9 (plan)
-  - If `requirements.md` exists with CATEGORY-NN entries → resume at Step 8 (design)
+  - If `requirements-manifest.md` exists listing domain files written → resume at Step 8 (design)
   - If `research/` contains R-NN files → resume at Step 7 (requirements)
   - If `idea-honing.md` has Q-NN entries with answers → resume at Step 5 (research)
   - If only `rough-idea.md` exists → resume at Step 3 (process planning)
@@ -438,7 +438,7 @@ Determine if further requirements clarification or research is needed before pro
 
 ### 7. Extract Requirements
 
-Extract and formalize requirements from the idea-honing Q&A into a standalone `requirements.md` document with categorized, uniquely identified requirements.
+Extract and formalize requirements from the idea-honing Q&A into the project-level requirements catalogue at `team/specs/{project}/requirements/`.
 
 **Requirement Qualification:**
 
@@ -449,7 +449,7 @@ Requirements describe the **WHAT** — behavior observable by users, operators, 
 
 **Litmus test:** (1) Can a stakeholder verify this requirement without reading source code? If no → design.md. (2) Does the requirement prescribe a specific technology, pattern, algorithm, regex, or internal mechanism? If yes → extract the observable behavior as the requirement, move the mechanism to design.md as a design decision (D-NN).
 
-The following do NOT belong in requirements.md:
+The following do NOT belong in the requirements catalogue:
 
 | What | Where it belongs | Example |
 |------|-----------------|---------|
@@ -458,50 +458,53 @@ The following do NOT belong in requirements.md:
 | Engineering practices (testing, documentation) | design.md — Testing Strategy / Documentation Impact | "MUST include unit tests for validation", "MUST document key rotation" |
 
 **Constraints (all modes):**
-- You MUST create {epic_dir}/requirements.md
+- You MUST create or append to domain files in `team/specs/{project}/requirements/`. Create the directory if it doesn't exist.
 - You MUST read all Q-NN entries in {epic_dir}/idea-honing.md and extract requirement statements
-- You MUST organize requirements into categories based on functional area or concern
-- You MUST assign each category a 3-5 uppercase character abbreviation derived from the category heading (e.g., AUTH for Authentication, FORM for Form Handling, PLG for Pluggability, WIM for Work Items)
-- You MUST assign each requirement a `CATEGORY-NN` ID with zero-padded sequential numbers within each category (e.g., AUTH-01, AUTH-02, FORM-01)
-- After completing this phase, you MUST commit `{epic_dir}/requirements.md` to version control (see Commit After Phase section)
-- You MUST use the following document structure:
+- You MUST organize requirements by functional domain, where each domain maps to one file
+- Domain filenames MUST be 3-5 lowercase characters and serve as the category abbreviation when uppercased (e.g., `kms.md` → `KMS-NN`, `auth.md` → `AUTH-NN`). No full words.
+- You MUST assign each requirement a `CATEGORY-NN` ID with zero-padded sequential numbers. When appending to an existing domain file, read it, find the highest existing ID, and continue numbering sequentially.
+- Before writing requirements, you MUST list existing files in `team/specs/{project}/requirements/` — appending to an existing domain is the default, creating a new domain is the exception
+- In interactive mode: present existing domains and recommend appending unless the feature is genuinely a new functional area
+- In auto mode: fuzzy-match domain names and topic overlap — always prefer appending to an existing domain over creating a new one
+- A single epic MAY produce requirements across multiple domain files if the feature spans multiple functional areas. Each category maps to exactly one domain file.
+- In interactive mode: present the proposed domain grouping (which requirements go to which domain file) for approval before writing
+- In auto mode: default to one domain per epic unless requirements clearly span distinct functional areas
+- When appending to an existing domain file, you MUST commit the domain file immediately after writing to minimize ID collision risk from concurrent epic planning
+- After completing this phase, you MUST commit the domain files in `team/specs/{project}/requirements/` and write `{epic_dir}/requirements-manifest.md` to version control (see Commit After Phase section)
+- You MUST use the following document structure for each domain file:
 
 ````markdown
-# Requirements — [Epic Name]
-
-## [Category Name] (CATG)
+# {Domain Name}
 
 | ID | Requirement | Priority | Source |
 |----|-------------|----------|--------|
-| CATG-01 | [Requirement text using MUST/SHOULD/MAY] | must-have | Q-03, Q-05 |
-| CATG-02 | ... | should-have | Q-07 |
-
-## [Another Category] (ANTH)
-
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| ANTH-01 | ... | must-have | Q-01 |
-
-## Traceability Matrix
-
-| Requirement | Acceptance Criteria | Story | Status |
-|-------------|--------------------|--------------------|--------|
-| CATG-01 | — | — | Pending |
+| DOM-01 | [Requirement text using MUST/SHOULD/MAY] | must-have | #54/Q-03, #54/Q-05 |
+| DOM-02 | ... | should-have | #54/Q-07 |
 ````
 
-- The **Source** column MUST reference the `Q-NN` IDs from idea-honing.md that informed the requirement
+- You MUST write a requirements manifest at `{epic_dir}/requirements-manifest.md` listing all domain files written and their ID ranges:
+
+````markdown
+# Requirements Manifest — {Epic Name}
+
+| Domain File | IDs Added | Count |
+|-------------|-----------|-------|
+| team/specs/{project}/requirements/kms.md | KMS-01 to KMS-07 | 7 |
+````
+
+- The **Source** column MUST use `#{issue}/Q-NN` format to identify which epic's idea-honing produced each requirement (e.g., `#54/Q-03`)
 - **Priority** MUST be one of: `must-have`, `should-have`, `could-have`, `wont-have`
 - Requirement text MUST use RFC 2119 keywords (MUST, SHOULD, MAY) to express obligation level
-- The **Traceability Matrix** at the bottom MUST list every requirement ID. The Acceptance Criteria and Story columns are initially `—` (populated in later steps when the design doc and plan are produced)
 - You MUST NOT create categories for testing or documentation — these are engineering practices, not requirements. Testing strategy and documentation needs are captured in the design document's dedicated sections (Testing Strategy, Documentation Impact)
 - You MUST NOT include implementation details as requirements — if a requirement prescribes a specific technology, names an internal API, or describes internal data propagation, extract only the observable behavior as the requirement and move the mechanism to the design document
 - After extraction, you MUST sanity-check the count: if a feature produces more than 15 requirements, re-evaluate each against the litmus test — a high count is a smell for implementation details leaking into requirements
 
 **Adversarial Review (requirements):**
-- After producing and committing requirements.md, you MUST run the adversarial review process (see Adversarial Review section)
+- After producing and committing the requirements domain files, you MUST run the adversarial review process (see Adversarial Review section)
 - Use the **Requirements** persona: Product Manager
 - Apply the iteration protocol matching the current mode (interactive or auto)
-- If revisions are made, re-commit `{epic_dir}/requirements.md` with message `docs(specs): revise requirements after review for {epic_name}`
+- When appending to an existing domain file, the reviewer MUST review only the newly added entries from this epic (identified by Source column `#{issue}/Q-NN`). The reviewer SHOULD flag conflicts with existing entries but MUST NOT re-litigate requirements approved in a previous epic's review cycle.
+- If revisions are made, re-commit the domain files in `team/specs/{project}/requirements/` with message `docs(specs): revise requirements after review for {epic_name}`
 
 **Constraints (interactive mode only):**
 - You MUST present the extracted requirements to the user for review
@@ -516,7 +519,7 @@ The following do NOT belong in requirements.md:
 
 ### 8. Create Detailed Design
 
-Develop a comprehensive design document based on the requirements and research. The design document references requirements by their `CATEGORY-NN` IDs from requirements.md rather than duplicating requirement text.
+Develop a comprehensive design document based on the requirements and research. The design document references requirements by their `CATEGORY-NN` IDs from the project requirements catalogue rather than duplicating requirement text.
 
 **Constraints (all modes):**
 - You MUST create a detailed design document at {epic_dir}/design.md
@@ -524,7 +527,7 @@ Develop a comprehensive design document based on the requirements and research. 
 - You MUST write the design as a standalone document that can be understood without reading other planning artifacts
 - You MUST include the following sections in the design document:
   - Overview
-  - Requirements Summary (reference requirements.md by CATEGORY-NN IDs — do NOT duplicate full requirement text)
+  - Requirements Summary (reference the project requirements catalogue by CATEGORY-NN IDs — do NOT duplicate full requirement text)
   - Architecture Overview
   - Components and Interfaces
   - Data Models
@@ -543,7 +546,7 @@ Develop a comprehensive design document based on the requirements and research. 
 - Acceptance criteria operationalize requirements into concrete, testable scenarios. Each AC specifies a precondition, action, and expected observable outcome that verifies one or more requirements are satisfied. The requirement (CATEGORY-NN) states the obligation (WHAT); the AC (Given-When-Then) makes it verifiable.
 - You MUST assign each acceptance criterion a sequential `AC-NN` ID (AC-01, AC-02, ...). Acceptance criteria MUST be in Given-When-Then (GWT) format and reference the `CATEGORY-NN` requirement(s) they verify.
 - You MUST assign each design decision a sequential `D-NN` ID (D-01, D-02, ...). Each decision MUST include the chosen option, alternatives considered, and rationale.
-- The Requirements Summary section MUST reference requirements.md by CATEGORY-NN IDs and MUST NOT duplicate the full requirement text. A brief paraphrase or the requirement title is acceptable for readability, but the authoritative text lives in requirements.md.
+- The Requirements Summary section MUST reference the project requirements catalogue by CATEGORY-NN IDs and MUST NOT duplicate the full requirement text. A brief paraphrase or the requirement title is acceptable for readability, but the authoritative text lives in `team/specs/{project}/requirements/{domain}.md`.
 - You MUST include an appendix section that summarizes key research findings, including:
   - Major technology choices with pros and cons
   - Existing solutions analysis
@@ -551,13 +554,13 @@ Develop a comprehensive design document based on the requirements and research. 
   - Key constraints and limitations identified during research
 - You SHOULD include diagrams or visual representations when appropriate using mermaid syntax
 - You MUST generate mermaid diagrams for architectural overviews, data flow, and component relationships
-- You MUST ensure the design addresses all requirements identified in requirements.md
+- You MUST ensure the design addresses all requirements identified in the project requirements catalogue for this epic
 - You SHOULD highlight design decisions and their rationales, referencing research findings where applicable
 - You MUST include a Traceability Matrix as the LAST section of the design document (after Appendices)
-- The Traceability Matrix MUST list every requirement (`CATEGORY-NN`) from requirements.md, mapped to the acceptance criteria (`AC-NN`) defined in this design document that verify it
+- The Traceability Matrix MUST list every requirement (`CATEGORY-NN`) from the project requirements catalogue relevant to this epic, mapped to the acceptance criteria (`AC-NN`) defined in this design document that verify it
 - The **Story** column MUST initially contain `—` (populated in Step 9 after the plan is produced)
 - The **Verification Status** column MUST initially contain `Pending`
-- Every requirement ID in requirements.md MUST appear in the matrix — a missing requirement indicates a gap in the design that must be addressed before proceeding
+- Every requirement ID from the project requirements catalogue relevant to this epic MUST appear in the matrix — a missing requirement indicates a gap in the design that must be addressed before proceeding
 
 **Example traceability matrix format (in design.md):**
 
@@ -621,7 +624,7 @@ Create a structured story breakdown with a series of stories for implementing th
 
 **Constraints (all modes):**
 - You MUST create a story breakdown at {epic_dir}/plan.md
-- After completing this phase, you MUST commit `{epic_dir}/plan.md` and the updated `{epic_dir}/requirements.md` (traceability matrix) to version control (see Commit After Phase section)
+- After completing this phase, you MUST commit `{epic_dir}/plan.md` to version control (see Commit After Phase section)
 - You MUST include a checklist at the beginning of the plan.md file to track story progress
 - You MUST use the following specific instructions when creating the story breakdown:
   ```
@@ -654,8 +657,7 @@ Create a structured story breakdown with a series of stories for implementing th
 - You MUST ensure the plan covers all aspects of the design
 - You SHOULD sequence stories to validate core functionality early
 - You MUST ensure the checklist items correspond directly to the stories in the plan, using the STORY-NN IDs
-- After the plan is finalized, you MUST update the Traceability Matrix in requirements.md: fill in the **Acceptance Criteria** column with the `AC-NN` IDs from the design doc and the **Story** column with the `STORY-NN` IDs from the plan for each requirement
-- After the plan is finalized, you MUST also update the Traceability Matrix in design.md: fill in the **Story** column with the `STORY-NN` IDs from the plan for each requirement
+- After the plan is finalized, you MUST update the Traceability Matrix in design.md: fill in the **Story** column with the `STORY-NN` IDs from the plan for each requirement
 
 **Constraints (auto mode only):**
 - You MUST produce the complete story breakdown autonomously without user confirmation
@@ -664,7 +666,7 @@ Create a structured story breakdown with a series of stories for implementing th
 - After producing and committing the story breakdown, you MUST run the adversarial review process (see Adversarial Review section)
 - Use the **Story Breakdown** personas: Staff Engineer, Delivery/PM
 - Apply the iteration protocol matching the current mode (interactive or auto)
-- If revisions are made, re-commit `{epic_dir}/plan.md` and updated `{epic_dir}/requirements.md` (traceability matrix) with message `docs(specs): revise plan after review for {epic_name}`
+- If revisions are made, re-commit `{epic_dir}/plan.md` with message `docs(specs): revise plan after review for {epic_name}`
 - In interactive mode: complete the adversarial review before proceeding to Step 9
 - In auto mode: complete the adversarial review (up to 3 rounds) before proceeding to Step 9 — if blockers remain after 3 rounds, emit a rejection event
 
@@ -676,7 +678,7 @@ Provide a summary of all artifacts created and next steps.
 - You MUST create a summary document at {epic_dir}/summary.md
 - You MUST list all artifacts created during the process with their ID counts:
   - Number of questions (Q-NN) in idea-honing.md
-  - Number of requirements (CATEGORY-NN) in requirements.md, broken down by category
+  - Number of requirements (CATEGORY-NN) in the project requirements catalogue, broken down by domain
   - Number of research topics (R-NN)
   - Number of acceptance criteria (AC-NN) in design.md
   - Number of decisions (D-NN) in design.md
@@ -696,7 +698,7 @@ Provide a summary of all artifacts created and next steps.
 
 Before transitioning to `human:po:plan-review`, you MUST update the epic issue body with the enriched template. This replaces the stub body created in Step 2:
 
-1. Read the spec artifacts: `summary.md`, `requirements.md`, `design.md`, `plan.md`
+1. Read the spec artifacts: `summary.md`, `design.md`, `plan.md`, and domain files from `team/specs/{project}/requirements/` (use the requirements manifest to identify relevant domain files)
 2. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` (workspace root) or from `git -C team remote get-url origin`
 3. Construct the enriched body using this template:
 
@@ -718,12 +720,12 @@ Before transitioning to `human:po:plan-review`, you MUST update the epic issue b
 
    | ID | Requirement | Stories |
    |----|-------------|---------|
-   | CATG-01 | <full requirement text from requirements.md> | |
-   | CATG-02 | <full requirement text from requirements.md> | |
+   | CATG-01 | <full requirement text from project requirements catalogue> | |
+   | CATG-02 | <full requirement text from project requirements catalogue> | |
 
    ## Specs
 
-   - [Requirements](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<issue#>-<slug>/requirements.md) — N requirements
+   - [Requirements](https://github.com/<TEAM_REPO>/tree/main/specs/<project>/requirements/) — domains: {list of domain files touched}
    - [Design](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<issue#>-<slug>/design.md) — N ACs, N decisions
    - [Plan](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<issue#>-<slug>/plan.md) — N stories
    - [Research](https://github.com/<TEAM_REPO>/tree/main/specs/<project>/<issue#>-<slug>/research/)
@@ -759,7 +761,7 @@ After the PR is opened, you MUST offer to continue with story creation:
   5. Run the **Breakdown Operation** (see below) to create story issues, populate bodies, and update the epic body.
   6. Load the `story-mgmt` skill and chain into it for each story for task decomposition.
   7. For each story, the story-mgmt follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
-  8. You MUST pass the relevant planning context (design.md path, requirements.md path, `CATEGORY-NN` and `AC-NN` IDs) when chaining into story-mgmt.
+  8. You MUST pass the relevant planning context (design.md path, requirements catalogue path `team/specs/{project}/requirements/`, `CATEGORY-NN` and `AC-NN` IDs) when chaining into story-mgmt.
 - If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
   - **All stories first:** Create all story issues from the plan, then decompose each story into tasks
   - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
@@ -780,7 +782,8 @@ The complete PDD pipeline produces the following artifacts:
 |----------|----------|-----|---------|
 | `rough-idea.md` | {epic_dir}/ | — | The original idea verbatim |
 | `idea-honing.md` | {epic_dir}/ | Q-NN | Question-and-answer pairs from requirements clarification |
-| `requirements.md` | {epic_dir}/ | CATEGORY-NN | Standalone requirements organized by category with traceability matrix |
+| `requirements/{domain}.md` | team/specs/{project}/requirements/ | CATEGORY-NN | Project-level requirements catalogue, organized by functional domain |
+| `requirements-manifest.md` | {epic_dir}/ | — | Lists domain files written and ID ranges for this epic |
 | `research/*.md` | {epic_dir}/research/ | R-NN | Research notes organized by topic |
 | `design.md` | {epic_dir}/ | AC-NN, D-NN | Design document referencing requirements by CATEGORY-NN, with traceability matrix |
 | `plan.md` | {epic_dir}/ | STORY-NN | Story breakdown, each story referencing CATEGORY-NN and AC-NN |
@@ -801,11 +804,11 @@ This operation creates story issues from an approved epic plan. It can be invoke
 
 1. Read the epic issue to get labels and locate the spec directory at `team/specs/<project>/<issue#>-<slug>/`
 2. Read `plan.md` for the STORY-NN list with their titles, objectives, requirements, ACs, guidance, demos, and dependencies
-3. Read `requirements.md` for full requirement text and `design.md` for full AC GWT text
+3. Read domain files from `team/specs/{project}/requirements/` for full requirement text and `design.md` for full AC GWT text
 4. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` or from `git -C team remote get-url origin`
 5. Create each story as a Story-type sub-issue of the parent Epic using the `github-project` skill's sub-issue operation. Each story body MUST follow the **Story Body Template** defined in the `story-mgmt` skill's "Story Issue Body Convention" section. Populate it by reading:
    - `plan.md` for objective, implementation guidance, demo, dependencies
-   - `requirements.md` for full requirement text (look up each CATEGORY-NN ID)
+   - the domain file matching the category prefix for full requirement text (e.g., KMS-01 → `team/specs/{project}/requirements/kms.md`)
    - `design.md` for full AC GWT text (look up each AC-NN ID)
    - Construct spec URLs using `https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<issue#>-<slug>/`
    - Dependencies: use `#N` issue links when the story's issue number is known (created earlier); otherwise use STORY-NN IDs
@@ -857,7 +860,11 @@ I've completed the transformation of your rough idea into a detailed design with
 - team/specs/my-project/15-template-feature/
   - rough-idea.md (your initial concept)
   - idea-honing.md (Q-01 through Q-12 — our requirements clarification)
-  - requirements.md (AUTH-01 through AUTH-03, TMPL-01 through TMPL-05, SHARE-01 through SHARE-02)
+  - requirements-manifest.md (domain files written for this epic)
+- team/specs/my-project/requirements/
+  - auth.md (AUTH-01 through AUTH-03)
+  - tmpl.md (TMPL-01 through TMPL-05)
+  - share.md (SHARE-01 through SHARE-02)
   - research/
     - R-01-existing-templates.md
     - R-02-storage-options.md
