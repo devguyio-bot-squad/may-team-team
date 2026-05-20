@@ -313,7 +313,7 @@ Create task files, catalog README, and organize output.
 - You MUST break down the story into logical implementation phases focusing on functional components, NOT separate testing tasks
 - You MUST follow the exact format specified in the Code Task Format section below
 - You MUST include comprehensive acceptance criteria that cover the main functionality
-- You MUST include unit test requirements as part of the acceptance criteria for each implementation task
+- You MUST include acceptance criteria that verify task-specific behavior through Given-When-Then scenarios — each AC MUST describe observable outcomes, not test infrastructure (e.g., "Then the function returns failure with error X" not "Then unit tests exist for the function")
 - You MUST NOT create separate tasks for "add unit tests" or "write tests" — testing is integrated into each functional task
 - You MUST provide realistic complexity assessment and required skills
 - You MUST save files to the output directory
@@ -630,10 +630,10 @@ The registration flow currently accepts any string as an email address, leading 
    - When the validation function is called
    - Then the function returns failure with specific error message
 
-3. **Unit Test Coverage**
-   - Given the email validator implementation
-   - When running the test suite
-   - Then all validation scenarios have corresponding unit tests
+3. **Edge Case Handling**
+   - Given an email address exceeding 254 characters
+   - When the validation function is called
+   - Then the function returns failure with a "too long" error message
 
 ## Traceability
 - **Requirements**: FORM-01, FORM-02

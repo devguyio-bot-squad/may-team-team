@@ -135,6 +135,12 @@ After completing each major phase, you MUST commit the artifacts in `{epic_dir}/
 
 After each major planning artifact is produced (design document, story breakdown), you MUST spawn adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer adopts a distinct professional persona and reviews the artifact holistically from that viewpoint — they apply their full professional judgment, not a narrow topic checklist. The reviewers are internal to this skill — they are not separate hats.
 
+**Requirements personas (1 reviewer):**
+
+| Persona | Review lens |
+|---------|-------------|
+| **Product Manager** | Reviews as the stakeholder who will use this requirements document to evaluate feature completeness and sign off on scope. For each requirement, applies the litmus test: "Can I verify this without reading source code? Does this describe WHAT the system does, not HOW it's built?" Flags implementation details, technology choices, engineering practices, and internal plumbing that leaked into requirements. Also checks for missing requirements — user-observable behaviors implied by the idea-honing but not captured. |
+
 **Design Document personas (3 reviewers):**
 
 | Persona | Review lens |
@@ -179,7 +185,7 @@ Each reviewer MUST produce structured feedback in this format:
 | **Auto** | Iterate up to 3 rounds without human input. Round 1: initial review — all issues surfaced. Round 2: targeted revision — address only blocker and major issues, re-review changed sections plus regression check. Round 3: final pass — if blockers remain, emit rejection event with remaining issues listed. |
 
 **Constraints:**
-- You MUST spawn the number of reviewer sub-agents matching the artifact type (3 for design document, 2 for story breakdown)
+- You MUST spawn the number of reviewer sub-agents matching the artifact type (1 for requirements, 3 for design document, 2 for story breakdown)
 - Each sub-agent MUST adopt a distinct persona from the persona tables above, matched to the artifact type being reviewed
 - Persona-based reviewers review holistically — do NOT constrain them to a narrow topic checklist. The persona description defines their lens, not their scope.
 - Sub-agents MUST produce feedback in the structured format specified above
@@ -434,6 +440,23 @@ Determine if further requirements clarification or research is needed before pro
 
 Extract and formalize requirements from the idea-honing Q&A into a standalone `requirements.md` document with categorized, uniquely identified requirements.
 
+**Requirement Qualification:**
+
+Requirements describe the **WHAT** — behavior observable by users, operators, or stakeholders.
+
+- **Functional requirements** describe what the system must DO (e.g., "The system MUST allow customers to specify a KMS key ARN for StorageClass encryption")
+- **Non-functional requirements** describe quality attributes specific to this feature (e.g., "KMS key validation MUST NOT add more than 500ms to the reconciliation cycle"). Not every feature has NFRs — do not force them.
+
+**Litmus test:** (1) Can a stakeholder verify this requirement without reading source code? If no → design.md. (2) Does the requirement prescribe a specific technology, pattern, algorithm, regex, or internal mechanism? If yes → extract the observable behavior as the requirement, move the mechanism to design.md as a design decision (D-NN).
+
+The following do NOT belong in requirements.md:
+
+| What | Where it belongs | Example |
+|------|-----------------|---------|
+| Implementation details (type names, struct fields, internal APIs, data propagation) | design.md — Architecture / Components | "MUST set driverType to AWSDriverType", "MUST mirror field from HC to HCP" |
+| Technology/pattern choices (specific libraries, algorithms, regex patterns) | design.md — Design Decisions (D-NN) | "MUST use CEL rules, not webhooks", "MUST use regex ^arn:..." |
+| Engineering practices (testing, documentation) | design.md — Testing Strategy / Documentation Impact | "MUST include unit tests for validation", "MUST document key rotation" |
+
 **Constraints (all modes):**
 - You MUST create {epic_dir}/requirements.md
 - You MUST read all Q-NN entries in {epic_dir}/idea-honing.md and extract requirement statements
@@ -470,6 +493,16 @@ Extract and formalize requirements from the idea-honing Q&A into a standalone `r
 - **Priority** MUST be one of: `must-have`, `should-have`, `could-have`, `wont-have`
 - Requirement text MUST use RFC 2119 keywords (MUST, SHOULD, MAY) to express obligation level
 - The **Traceability Matrix** at the bottom MUST list every requirement ID. The Acceptance Criteria and Story columns are initially `—` (populated in later steps when the design doc and plan are produced)
+- You MUST NOT create categories for testing or documentation — these are engineering practices, not requirements. Testing strategy and documentation needs are captured in the design document's dedicated sections (Testing Strategy, Documentation Impact)
+- You MUST NOT include implementation details as requirements — if a requirement prescribes a specific technology, names an internal API, or describes internal data propagation, extract only the observable behavior as the requirement and move the mechanism to the design document
+- After extraction, you MUST sanity-check the count: if a feature produces more than 15 requirements, re-evaluate each against the litmus test — a high count is a smell for implementation details leaking into requirements
+
+**Adversarial Review (requirements):**
+- After producing and committing requirements.md, you MUST run the adversarial review process (see Adversarial Review section)
+- Use the **Requirements** persona: Product Manager
+- Apply the iteration protocol matching the current mode (interactive or auto)
+- If revisions are made, re-commit `{epic_dir}/requirements.md` with message `docs(specs): revise requirements after review for {epic_name}`
+
 **Constraints (interactive mode only):**
 - You MUST present the extracted requirements to the user for review
 - You MUST iterate on the requirements based on user feedback
@@ -507,6 +540,7 @@ Develop a comprehensive design document based on the requirements and research. 
   - Documentation Impact (user-facing docs, API docs, changelog entries needed)
   - Appendices (Technology Choices, Research Findings, Alternative Approaches)
   - Traceability Matrix (LAST section — maps requirements to acceptance criteria and stories)
+- Acceptance criteria operationalize requirements into concrete, testable scenarios. Each AC specifies a precondition, action, and expected observable outcome that verifies one or more requirements are satisfied. The requirement (CATEGORY-NN) states the obligation (WHAT); the AC (Given-When-Then) makes it verifiable.
 - You MUST assign each acceptance criterion a sequential `AC-NN` ID (AC-01, AC-02, ...). Acceptance criteria MUST be in Given-When-Then (GWT) format and reference the `CATEGORY-NN` requirement(s) they verify.
 - You MUST assign each design decision a sequential `D-NN` ID (D-01, D-02, ...). Each decision MUST include the chosen option, alternatives considered, and rationale.
 - The Requirements Summary section MUST reference requirements.md by CATEGORY-NN IDs and MUST NOT duplicate the full requirement text. A brief paraphrase or the requirement title is acceptable for readability, but the authoritative text lives in requirements.md.
