@@ -66,3 +66,29 @@ Given the existing pattern and user preference for status reporting (Q-08), opti
 | `AsExpectedReason` | `"AsExpected"` | Validation succeeded |
 | `InvalidIAMRoleReason` | `"InvalidIAMRole"` | Role assumption failed |
 | `AWSErrorReason` | `"AWSError"` | AWS API call failed |
+
+## R-05b: ClusterCSIDriver Conditions and Downstream Propagation
+
+### ClusterCSIDriver Has No Domain-Specific Conditions
+
+The vendored `ClusterCSIDriverStatus` embeds only `OperatorStatus` — generic conditions: `Available`, `Progressing`, `Degraded`, `PrereqsSatisfied`, `Upgradeable`. No conditions related to StorageClass state, KMS key validity, encryption config, or driver config application. `StorageClassState` and `DriverConfig` are spec-only with no status feedback.
+
+### Downstream Status Propagation Patterns in HyperShift
+
+| Pattern | Source (Guest) | Target (HCP) | Controller |
+|---------|---------------|--------------|------------|
+| ClusterVersion conditions | `ClusterVersion.Status.Conditions` | Multiple HCP conditions (Failing, Progressing, Available, etc.) | `hcpstatus` controller |
+| Network operator MTU | `Network.Spec` (not status) | `ValidKubeVirtInfraNetworkMTU` | resources controller |
+| Pod/ConfigMap data | Konnectivity agent pods, KAS checker ConfigMap | `DataPlaneConnectionAvailable`, `ControlPlaneConnectionAvailable` | resources controller |
+| Authentication status | `Authentication.Status` | `hcp.Status.Configuration.Authentication` | `hcpstatus` controller |
+
+### Storage Resources Are Fire-and-Forget
+
+ClusterCSIDriver, Storage, and CSISnapshotController are created/updated in the guest cluster but **never read back**. ClusterCSIDriver is not in the HCCO watch list. No storage status is propagated to HCP conditions.
+
+### Implication for StorageClass KMS Key
+
+Since ClusterCSIDriver has no KMS-specific condition to propagate, and storage resources aren't currently watched, the options are:
+1. No new condition (fire-and-forget like today)
+2. Propagation-only condition (confirm ARN written to ClusterCSIDriver)
+3. Watch generic ClusterCSIDriver conditions (broad, not KMS-specific)
