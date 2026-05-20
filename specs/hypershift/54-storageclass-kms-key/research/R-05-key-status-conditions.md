@@ -86,9 +86,24 @@ The vendored `ClusterCSIDriverStatus` embeds only `OperatorStatus` — generic c
 
 ClusterCSIDriver, Storage, and CSISnapshotController are created/updated in the guest cluster but **never read back**. ClusterCSIDriver is not in the HCCO watch list. No storage status is propagated to HCP conditions.
 
+### CORRECTION: Storage Conditions DO Propagate (Indirectly)
+
+Previous research incorrectly stated storage status is not propagated. The actual chain:
+
+1. `aws-ebs-csi-driver-operator` sets generic Degraded on ClusterCSIDriver status
+2. `cluster-storage-operator` aggregates into ClusterOperator `storage` with Degraded=True
+3. CVO sees degraded `storage` ClusterOperator → sets ClusterVersion `Failing=True`
+4. `hcpstatus` controller copies to HCP `ClusterVersionFailing`
+5. HC controller copies to HostedCluster `ClusterVersionSucceeding` (inverted)
+
+So a KMS misconfiguration would surface on HostedCluster today, but:
+- **Lossy**: Message is generic "cluster operator storage is degraded" — no KMS-specific detail
+- **Delayed**: CVO checks during payload reconciliation cycles, not continuously
+- **Not actionable**: User sees degraded storage, not "your KMS key ARN is invalid"
+
 ### Implication for StorageClass KMS Key
 
-Since ClusterCSIDriver has no KMS-specific condition to propagate, and storage resources aren't currently watched, the options are:
-1. No new condition (fire-and-forget like today)
-2. Propagation-only condition (confirm ARN written to ClusterCSIDriver)
-3. Watch generic ClusterCSIDriver conditions (broad, not KMS-specific)
+Options:
+1. **Rely on existing propagation** — KMS failures surface as generic storage degradation via CVO chain (already works, no new code)
+2. **Add KMS-specific condition** — fast, actionable detection with clear KMS error message (new condition type, active probe like `ValidAWSKMSConfig`)
+3. **Hybrid** — rely on existing chain for operational detection, add documentation/troubleshooting guidance for KMS-specific diagnosis
