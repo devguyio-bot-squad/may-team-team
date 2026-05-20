@@ -133,7 +133,7 @@ After completing each major phase, you MUST commit the artifacts in `{epic_dir}/
 
 ## Adversarial Review
 
-After each major planning artifact is produced (design document, story breakdown), you MUST spawn adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer adopts a distinct professional persona and reviews the artifact holistically from that viewpoint — they apply their full professional judgment, not a narrow topic checklist. The reviewers are internal to this skill — they are not separate hats.
+After each major planning artifact is produced (requirements, design document, story breakdown), you MUST spawn adversarial reviewer sub-agents in parallel using the coding agent's sub-agent capability. Each reviewer adopts a distinct professional persona and reviews the artifact holistically from that viewpoint — they apply their full professional judgment, not a narrow topic checklist. The reviewers are internal to this skill — they are not separate hats.
 
 **Requirements personas (1 reviewer):**
 
@@ -667,8 +667,8 @@ Create a structured story breakdown with a series of stories for implementing th
 - Use the **Story Breakdown** personas: Staff Engineer, Delivery/PM
 - Apply the iteration protocol matching the current mode (interactive or auto)
 - If revisions are made, re-commit `{epic_dir}/plan.md` with message `docs(specs): revise plan after review for {epic_name}`
-- In interactive mode: complete the adversarial review before proceeding to Step 9
-- In auto mode: complete the adversarial review (up to 3 rounds) before proceeding to Step 9 — if blockers remain after 3 rounds, emit a rejection event
+- In interactive mode: complete the adversarial review before proceeding to Step 10
+- In auto mode: complete the adversarial review (up to 3 rounds) before proceeding to Step 10 — if blockers remain after 3 rounds, emit a rejection event
 
 ### 10. Summarize and Present Results
 
@@ -861,10 +861,6 @@ I've completed the transformation of your rough idea into a detailed design with
   - rough-idea.md (your initial concept)
   - idea-honing.md (Q-01 through Q-12 — our requirements clarification)
   - requirements-manifest.md (domain files written for this epic)
-- team/specs/my-project/requirements/
-  - auth.md (AUTH-01 through AUTH-03)
-  - tmpl.md (TMPL-01 through TMPL-05)
-  - share.md (SHARE-01 through SHARE-02)
   - research/
     - R-01-existing-templates.md
     - R-02-storage-options.md
@@ -872,6 +868,10 @@ I've completed the transformation of your rough idea into a detailed design with
   - design.md (AC-01 through AC-08, D-01 through D-03)
   - plan.md (STORY-01 through STORY-12, story breakdown with checklist)
   - summary.md (this document)
+- team/specs/my-project/requirements/
+  - auth.md (AUTH-01 through AUTH-03)
+  - tmpl.md (TMPL-01 through TMPL-05)
+  - share.md (SHARE-01 through SHARE-02)
 
 ## Key Design Elements
 - Template management system with CRUD operations
