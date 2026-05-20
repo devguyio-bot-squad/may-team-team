@@ -45,7 +45,7 @@ If ANY items from the board fetch have null or empty status, run the
 `github-project` skill's **status-reconcile** operation before proceeding:
 
 ```bash
-bash scripts/status-reconcile.sh
+bash ${CLAUDE_SKILL_DIR}/../github-project/scripts/status-reconcile.sh
 ```
 
 Then re-fetch the board (repeat step 3) to get the corrected statuses.
