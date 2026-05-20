@@ -91,6 +91,8 @@ projects:
   fork_url: https://github.com/devguyio-bot-squad/botminter.git
 - name: ralph-orchestrator
   fork_url: https://github.com/devguyio-bot-squad/ralph-orchestrator
+- name: hypershift
+  fork_url: https://github.com/devguyio-bot-squad/hypershift
 views:
 - name: Engineer
   prefixes:
