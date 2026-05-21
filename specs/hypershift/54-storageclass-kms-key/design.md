@@ -11,7 +11,7 @@ This design addresses requirements from two domains in the project requirements 
 - **KMS** (KMS-01 through KMS-07): Core KMS key ARN API field, propagation, day-2 mutability, clearing, format validation, status condition, and backward compatibility
 - **CLI** (CLI-01, CLI-02): HCP CLI and HyperShift dev CLI flag support
 
-Full requirement text: `team/specs/hypershift/requirements/kms.md`, `team/specs/hypershift/requirements/cli.md`
+Full requirement text: [kms.md](../../requirements/kms.md), [cli.md](../../requirements/cli.md)
 
 ## Architecture Overview
 

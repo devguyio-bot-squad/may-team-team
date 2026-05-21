@@ -6,7 +6,7 @@
 |----------|----------|-------|
 | Questions (Q-NN) | idea-honing.md | 11 (Q-01 to Q-11) |
 | Research topics (R-NN) | research/ | 5 (R-01 to R-05) |
-| Requirements (CATEGORY-NN) | team/specs/hypershift/requirements/ | 9 (KMS-01 to KMS-07, CLI-01 to CLI-02) |
+| Requirements (CATEGORY-NN) | [kms.md](../../requirements/kms.md), [cli.md](../../requirements/cli.md) | 9 (KMS-01 to KMS-07, CLI-01 to CLI-02) |
 | Acceptance criteria (AC-NN) | design.md | 10 (AC-01 to AC-10) |
 | Design decisions (D-NN) | design.md | 3 (D-01 to D-03) |
 | Stories (STORY-NN) | plan.md | 4 (STORY-01 to STORY-04) |
