@@ -701,9 +701,10 @@ Provide a summary of all artifacts created and next steps.
 
 You MUST:
 
-1. **Open a PR** on the team repo with the spec artifacts, linked to the epic issue. The PR title should reference the epic (e.g., `[#1] Planning: Tmux agent sessions for observability`). The PR body should summarize the artifacts produced and link to them.
-2. **Move the epic issue** to `human:po:plan-review` using the `status-workflow` skill.
-3. **Inform the user** that the PR is open and the epic is in plan-review.
+1. **Open a PR** on the team repo with the spec artifacts, linked to the epic issue. The PR title MUST reference the epic (e.g., `[#1] Planning: Tmux agent sessions for observability`). The PR body MUST summarize the artifacts produced and link to them.
+2. **Add the PR to the project board** with status `human:po:plan-review`. The PR MUST be added as a project item so it is visible in the board-driven workflow and the PO can find it alongside the epic.
+3. **Move the epic issue** to `human:po:plan-review` using the `status-workflow` skill.
+4. **Inform the user** that the PR is open, on the board, and the epic is in plan-review.
 
 **Skill Chaining (interactive mode only):**
 
