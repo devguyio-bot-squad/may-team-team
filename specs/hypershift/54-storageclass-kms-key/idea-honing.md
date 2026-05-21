@@ -32,7 +32,7 @@ Requirements clarification through structured Q&A.
 
 ## Q-08: Should the KMS key ARN be surfaced in the HostedCluster status or conditions?
 
-**Answer:** Yes, likely should surface a status condition for propagation success/failure. Research needed to find existing patterns for how other KMS keys (e.g., NodePool rootVolume, etcd encryption) report status conditions in HyperShift.
+**Answer:** Yes. Add a `ValidAWSStorageKMSConfig` condition following the `ValidAWSKMSConfig` pattern: CPO assumes the `StorageARN` role via `AssumeRoleWithWebIdentity`, calls KMS `Encrypt` to probe the key, and sets the condition on HCP status. The HC controller bubbles it up to HostedCluster status. No additional IAM permissions needed — the `StorageARN` role must already have KMS access for the feature to work. Additionally, generic storage operator degradation already propagates via the CVO chain (ClusterOperator "storage" → ClusterVersion → HCP → HC), providing a secondary signal.
 
 ## Q-09: Is the HCP CLI in scope for this epic?
 
@@ -44,4 +44,4 @@ Requirements clarification through structured Q&A.
 
 ## Q-11: What backport strategy is expected?
 
-**Answer:** Follow OpenShift z-stream backport process (see `team/projects/hypershift/knowledge/openshift-backport-process.md`): develop against `main` first, get bug VERIFIED, then cherry-pick to `release-4.XX` branches newest-to-oldest. Each backport PR needs `backport-risk-assessed` label from a z-stream approver. Use `/cherrypick release-4.XX` bot command or `/jira backport release-4.15,release-4.14` for parallel creation. **Important:** z-streams usually don't allow feature backports — executive approval via SBAR process is required. Backporting is OUT OF SCOPE for this epic. A separate OCPSTRAT will be created for the backport effort after the feature lands on `main`. Target for this epic: `main` branch only.
+**Answer:** Follow the standard OpenShift z-stream backport process. Backporting is OUT OF SCOPE for this epic. A separate OCPSTRAT will be created for the backport effort after the feature lands on `main`. Target for this epic: `main` branch only.
