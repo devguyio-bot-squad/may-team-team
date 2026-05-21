@@ -175,6 +175,8 @@ Each reviewer MUST produce structured feedback in this format:
 **Strengths:** [what's done well — retained across revisions]
 ````
 
+**Cross-reference validation (all reviewers):** Reviewers MUST check that file references in the artifact use relative markdown link syntax (e.g., `[kms.md](../../requirements/kms.md)`), not plain-text paths. Flag any bare backtick paths like `` `team/specs/...` `` that should be clickable links. Reviewers MUST also verify that linked files actually exist on disk.
+
 **Overlap guidance:** Persona-based reviewers may flag the same concern from different angles. This is expected and is a signal of severity — if both the Staff Engineer and QE flag weak acceptance criteria, that issue is more important than one flagged by a single reviewer. In auto mode, overlapping issues are addressed once (not duplicated); in interactive mode, all feedback is presented and the human decides.
 
 **Iteration protocol:**
@@ -489,7 +491,7 @@ The following do NOT belong in the requirements catalogue:
 
 | Domain File | IDs Added | Count |
 |-------------|-----------|-------|
-| team/specs/{project}/requirements/kms.md | KMS-01 to KMS-07 | 7 |
+| [kms.md](../../requirements/kms.md) | KMS-01 to KMS-07 | 7 |
 ````
 
 - The **Source** column MUST use `#{issue}/Q-NN` format to identify which epic's idea-honing produced each requirement (e.g., `#54/Q-03`)
@@ -527,7 +529,7 @@ Develop a comprehensive design document based on the requirements and research. 
 - You MUST write the design as a standalone document that can be understood without reading other planning artifacts
 - You MUST include the following sections in the design document:
   - Overview
-  - Requirements Summary (reference the project requirements catalogue by CATEGORY-NN IDs — do NOT duplicate full requirement text)
+  - Requirements Summary (reference the project requirements catalogue by CATEGORY-NN IDs with relative markdown links to domain files — do NOT duplicate full requirement text)
   - Architecture Overview
   - Components and Interfaces
   - Data Models
@@ -546,7 +548,8 @@ Develop a comprehensive design document based on the requirements and research. 
 - Acceptance criteria operationalize requirements into concrete, testable scenarios. Each AC specifies a precondition, action, and expected observable outcome that verifies one or more requirements are satisfied. The requirement (CATEGORY-NN) states the obligation (WHAT); the AC (Given-When-Then) makes it verifiable.
 - You MUST assign each acceptance criterion a sequential `AC-NN` ID (AC-01, AC-02, ...). Acceptance criteria MUST be in Given-When-Then (GWT) format and reference the `CATEGORY-NN` requirement(s) they verify.
 - You MUST assign each design decision a sequential `D-NN` ID (D-01, D-02, ...). Each decision MUST include the chosen option, alternatives considered, and rationale.
-- The Requirements Summary section MUST reference the project requirements catalogue by CATEGORY-NN IDs and MUST NOT duplicate the full requirement text. A brief paraphrase or the requirement title is acceptable for readability, but the authoritative text lives in `team/specs/{project}/requirements/{domain}.md`.
+- The Requirements Summary section MUST reference the project requirements catalogue by CATEGORY-NN IDs using relative markdown links to the domain files (e.g., `[kms.md](../../requirements/kms.md)`) and MUST NOT duplicate the full requirement text. A brief paraphrase or the requirement title is acceptable for readability, but the authoritative text lives in `team/specs/{project}/requirements/{domain}.md`. In actual artifacts, reference these files using relative markdown links.
+- All file cross-references in planning artifacts (design.md, plan.md, requirements-manifest.md) MUST use relative markdown links, not plain-text paths. Relative paths assume artifacts are at `team/specs/{project}/{epic_dir}/` and requirements at `team/specs/{project}/requirements/`, so the relative path is `../../requirements/{domain}.md`. Template patterns with `{project}` or `{domain}` placeholders in this skill document are instructional — replace with concrete relative links in actual artifacts.
 - You MUST include an appendix section that summarizes key research findings, including:
   - Major technology choices with pros and cons
   - Existing solutions analysis
@@ -694,9 +697,45 @@ Provide a summary of all artifacts created and next steps.
 - You MUST write the summary to `{epic_dir}/summary.md` without presenting it conversationally
 - You MUST provide a brief completion notice documenting the total artifact counts and any areas flagged for human review
 
+**PR and Status Transition (interactive mode only):**
+
+You MUST:
+
+1. **Open a PR** on the team repo with the spec artifacts, linked to the epic issue. The PR title should reference the epic (e.g., `[#1] Planning: Tmux agent sessions for observability`). The PR body should summarize the artifacts produced and link to them.
+2. **Move the epic issue** to `human:po:plan-review` using the `status-workflow` skill.
+3. **Inform the user** that the PR is open and the epic is in plan-review.
+
+**Skill Chaining (interactive mode only):**
+
+After the PR is opened, you MUST offer to continue with story creation:
+
+- Ask the user: "Would you like to proceed with creating story issues and decomposing tasks now, or stop here and review the PR first?"
+- If the user wants to **stop here**: end the skill. The user will review and merge the PR externally. The board scanner picks up the approved epic at `eng:lead:breakdown`.
+- If the user wants to **continue in this session**:
+  1. The user reviews the plan during the conversation. When they approve:
+  2. Check if the spec PR is still open. If so, confirm with the user: "The spec PR needs to be merged before breakdown. Should I merge it now?"
+  3. If confirmed, merge the PR using the `github-project` skill.
+  4. **Enrich the epic issue body** using the Epic Issue Body Enrichment template (see below). This MUST happen after the PR is merged so that all `main` branch links resolve.
+  5. Move the epic to `eng:lead:breakdown`.
+  6. Run the **Breakdown Operation** (see below) to create story issues, populate bodies, and update the epic body.
+  7. Load the `story-mgmt` skill and chain into it for each story for task decomposition.
+  8. For each story, the story-mgmt follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
+  9. You MUST pass the relevant planning context (design.md path, requirements catalogue path `team/specs/{project}/requirements/`, `CATEGORY-NN` and `AC-NN` IDs) when chaining into story-mgmt.
+- If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
+  - **All stories first:** Create all story issues from the plan, then decompose each story into tasks
+  - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
+
+**PR and Status Transition (auto mode only):**
+
+- You MUST NOT open a PR — the specs are committed directly to the team repo
+- You MUST update the epic issue body with the enriched template (see "Epic Issue Body Enrichment" below) — since specs are committed directly to `main`, links resolve immediately
+- You MUST NOT transition the epic status — the calling hat's quality gate handles the transition to `human:po:plan-review` after adversarial review passes
+- You MUST NOT post comments — the calling hat handles comment attribution
+- You MUST NOT chain into story-mgmt or create story issues — that happens via the Breakdown Operation after plan approval
+
 **Epic Issue Body Enrichment (both modes):**
 
-Before transitioning to `human:po:plan-review`, you MUST update the epic issue body with the enriched template. This replaces the stub body created in Step 2:
+This operation updates the epic issue body with the enriched template, replacing the stub body created in Step 2. In interactive mode, this MUST run after the spec PR is merged so that all `main` branch links resolve. In auto mode, specs are committed directly to `main`, so links resolve immediately.
 
 1. Read the spec artifacts: `summary.md`, `design.md`, `plan.md`, and domain files from `team/specs/{project}/requirements/` (use the requirements manifest to identify relevant domain files)
 2. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` (workspace root) or from `git -C team remote get-url origin`
@@ -720,8 +759,8 @@ Before transitioning to `human:po:plan-review`, you MUST update the epic issue b
 
    | ID | Requirement | Stories |
    |----|-------------|---------|
-   | CATG-01 | <full requirement text from project requirements catalogue> | |
-   | CATG-02 | <full requirement text from project requirements catalogue> | |
+   | [CATG-01](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/requirements/<domain>.md) | <full requirement text> | |
+   | [CATG-02](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/requirements/<domain>.md) | <full requirement text> | |
 
    ## Specs
 
@@ -738,41 +777,6 @@ Before transitioning to `human:po:plan-review`, you MUST update the epic issue b
    - ACs are NOT listed in the epic body — they are distributed across stories, each story has its own full ACs.
 
 4. Write the body to a temp file and call `update-issue.sh --issue <N> --body-file <path>` to update the epic issue body.
-
-**PR and Status Transition (interactive mode only):**
-
-After enriching the issue body, you MUST:
-
-1. **Open a PR** on the team repo with the spec artifacts, linked to the epic issue. The PR title should reference the epic (e.g., `[#1] Planning: Tmux agent sessions for observability`). The PR body should summarize the artifacts produced and link to them.
-2. **Move the epic issue** to `human:po:plan-review` using the `status-workflow` skill.
-3. **Inform the user** that the PR is open and the epic is in plan-review.
-
-**Skill Chaining (interactive mode only):**
-
-After the PR is opened, you MUST offer to continue with story creation:
-
-- Ask the user: "Would you like to proceed with creating story issues and decomposing tasks now, or stop here and review the PR first?"
-- If the user wants to **stop here**: end the skill. The user will review and merge the PR externally. The board scanner picks up the approved epic at `eng:lead:breakdown`.
-- If the user wants to **continue in this session**:
-  1. The user reviews the plan during the conversation. When they approve:
-  2. Check if the spec PR is still open. If so, confirm with the user: "The spec PR needs to be merged before breakdown. Should I merge it now?"
-  3. If confirmed, merge the PR using the `github-project` skill.
-  4. Move the epic to `eng:lead:breakdown`.
-  5. Run the **Breakdown Operation** (see below) to create story issues, populate bodies, and update the epic body.
-  6. Load the `story-mgmt` skill and chain into it for each story for task decomposition.
-  7. For each story, the story-mgmt follows the same pattern: produce task files → open a PR → move the story to `human:po:plan-review`.
-  8. You MUST pass the relevant planning context (design.md path, requirements catalogue path `team/specs/{project}/requirements/`, `CATEGORY-NN` and `AC-NN` IDs) when chaining into story-mgmt.
-- If the user chooses to create stories AND decompose tasks, you MUST ask about sequencing:
-  - **All stories first:** Create all story issues from the plan, then decompose each story into tasks
-  - **Story-by-story:** Create one story issue, decompose it into tasks, then move to the next story
-
-**PR and Status Transition (auto mode only):**
-
-- You MUST NOT open a PR — the specs are committed directly to the team repo
-- You MUST update the epic issue body with the enriched template (see "Epic Issue Body Enrichment" above)
-- You MUST NOT transition the epic status — the calling hat's quality gate handles the transition to `human:po:plan-review` after adversarial review passes
-- You MUST NOT post comments — the calling hat handles comment attribution
-- You MUST NOT chain into story-mgmt or create story issues — that happens via the Breakdown Operation after plan approval
 
 ## Artifact Summary
 
@@ -802,29 +806,30 @@ This operation creates story issues from an approved epic plan. It can be invoke
 
 **Behavior:**
 
-1. Read the epic issue to get labels and locate the spec directory at `team/specs/<project>/<issue#>-<slug>/`
-2. Read `plan.md` for the STORY-NN list with their titles, objectives, requirements, ACs, guidance, demos, and dependencies
-3. Read domain files from `team/specs/{project}/requirements/` for full requirement text and `design.md` for full AC GWT text
-4. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` or from `git -C team remote get-url origin`
-5. Create each story as a Story-type sub-issue of the parent Epic using the `github-project` skill's sub-issue operation. Each story body MUST follow the **Story Body Template** defined in the `story-mgmt` skill's "Story Issue Body Convention" section. Populate it by reading:
+1. You MUST read the epic issue to get labels and locate the spec directory at `team/specs/<project>/<issue#>-<slug>/`.
+2. **Epic body enrichment check:** You MUST read the current epic issue body. If it still contains the stub marker (`*Specs pending*`) or lacks the enriched template sections (Requirements table, Specs links), you MUST run the Epic Issue Body Enrichment operation (see above) before proceeding. You MUST NOT create story issues against an un-enriched epic body.
+3. You MUST read `plan.md` for the STORY-NN list with their titles, objectives, requirements, ACs, guidance, demos, and dependencies.
+4. You MUST read domain files from `team/specs/{project}/requirements/` for full requirement text and `design.md` for full AC GWT text.
+5. You MUST derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` or from `git -C team remote get-url origin`.
+6. You MUST create each story as a Story-type sub-issue of the parent Epic using the `github-project` skill's sub-issue operation. Each story body MUST follow the **Story Body Template** defined in the `story-mgmt` skill's "Story Issue Body Convention" section. You MUST populate it by reading:
    - `plan.md` for objective, implementation guidance, demo, dependencies
    - the domain file matching the category prefix for full requirement text (e.g., KMS-01 → `team/specs/{project}/requirements/kms.md`)
    - `design.md` for full AC GWT text (look up each AC-NN ID)
-   - Construct spec URLs using `https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<issue#>-<slug>/`
-   - Dependencies: use `#N` issue links when the story's issue number is known (created earlier); otherwise use STORY-NN IDs
-   - Write body to a temp file and use `--body-file` when large
-6. **Label propagation:** If the parent epic has the `plan:auto` label, apply `plan:auto` to each created story using `update-issue.sh --issue <N> --add-label plan:auto`
-7. Set each story's initial project status:
+   - Spec URLs MUST use `https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<issue#>-<slug>/`
+   - Dependencies MUST use `#N` issue links when the story's issue number is known (created earlier); otherwise STORY-NN IDs MAY be used
+   - You SHOULD write body to a temp file and use `--body-file` when large
+7. **Label propagation:** If the parent epic has the `plan:auto` label, you MUST apply `plan:auto` to each created story using `update-issue.sh --issue <N> --add-label plan:auto`.
+8. You MUST set each story's initial project status:
    - Regular stories → `eng:lead:plan`
    - Documentation stories (with `kind/docs` label) → `eng:cw:write`
-8. **Phase-2 epic body update:** Update the epic issue body's Requirements table to add `#N` story issue links in the Stories column. Read the current epic body, populate the Stories column with the story issue numbers that cover each requirement (from plan.md's per-story requirement listings), write to a temp file, and call `update-issue.sh --issue <epic#> --body-file <path>`
-9. **Verify:** Confirm each created story is a sub-issue of the parent epic, has the correct initial status set, and has a body containing full requirement text and AC GWT text (not bare IDs). If any verification fails, raise an error — do NOT return partial results.
+9. **Phase-2 epic body update:** You MUST update the epic issue body's Requirements table to add `#N` story issue links in the Stories column. You MUST read the current epic body, populate the Stories column with the story issue numbers that cover each requirement (from plan.md's per-story requirement listings), write to a temp file, and call `update-issue.sh --issue <epic#> --body-file <path>`.
+10. **Verify:** You MUST confirm each created story is a sub-issue of the parent epic, has the correct initial status set, and has a body containing full requirement text and AC GWT text (not bare IDs). If any verification fails, you MUST raise an error — you MUST NOT return partial results.
 
 **Return value:** The list of created story issue numbers, their STORY-NN mappings, and verification status.
 
 **What this operation does NOT do (caller responsibilities):**
-- Does NOT transition the epic to `eng:lead:monitor` — the calling hat or chaining flow handles that
-- Does NOT post comments — the calling hat handles comment attribution
+- You MUST NOT transition the epic to `eng:lead:monitor` — the calling hat or chaining flow handles that
+- You MUST NOT post comments — the calling hat handles comment attribution
 
 ## Examples
 
