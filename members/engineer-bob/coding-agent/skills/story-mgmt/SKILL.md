@@ -98,6 +98,8 @@ Each reviewer MUST produce structured feedback in this format:
 
 **All-PASS fast path:** If all 3 reviewers return PASS with no issues, skip iteration rounds and proceed directly to the next step. In interactive mode, present the clean verdicts to the human for acknowledgment. In auto mode, log the clean review in the catalog README Decisions section.
 
+**Cross-reference validation (all reviewers):** Reviewers MUST check that file references in task files and the catalog README use relative markdown link syntax (e.g., `[design.md](../../design.md)`), not plain-text paths. Flag any bare backtick paths like `` `team/specs/...` `` that should be clickable links. Reviewers MUST also verify that linked files actually exist on disk.
+
 **Overlap guidance:** Persona-based reviewers may flag the same concern from different angles. This is expected and is a signal of severity — if both the Staff Engineer and QE flag weak acceptance criteria, that issue is more important than one flagged by a single reviewer. In auto mode, overlapping issues are addressed once (not duplicated); in interactive mode, all feedback is presented and the human decides.
 
 **Iteration protocol:**
@@ -330,8 +332,8 @@ Create task files, catalog README, and organize output.
 
 **Parent Story:** [story reference or issue link]
 **Parent Epic:** [epic reference or issue link, if applicable]
-**Design Doc:** [path to design.md]
-**Requirements Catalogue:** [path to team/specs/{project}/requirements/]
+**Design Doc:** [design.md](../../design.md)
+**Requirements Catalogue:** [requirements/](../../requirements/)
 
 ## Decisions (auto mode only)
 
@@ -353,6 +355,9 @@ Create task files, catalog README, and organize output.
 - Every `.code-task-NN.md` file MUST include a Traceability section carrying `CATEGORY-NN` requirement IDs and `AC-NN` acceptance criteria IDs from the parent story/design doc
 - Every requirement ID and AC ID referenced in the parent story MUST appear in at least one task's Traceability section
 - The catalog README MUST aggregate all traceability IDs for quick reference
+
+**Cross-references:**
+- All file cross-references in task files and the catalog README MUST use relative markdown links, not plain-text paths. Task files live at `team/specs/{project}/{epic_dir}/tasks/{story_dir}/`, so the relative path to the design doc is `../../design.md` and to the requirements catalogue is `../../requirements/{domain}.md`. Template patterns with placeholders in this skill document are instructional — replace with concrete relative links in actual artifacts.
 
 **Index update:**
 - You MUST update `team/specs/index.md` with an entry for this story. Create the file if it doesn't exist. Each entry should include the issue number, title, parent epic reference, project, and link to the task directory.
@@ -407,34 +412,16 @@ After committing, you MUST ask the user whether to decompose the next story or p
 
 Move stories to `human:po:plan-review` for human approval. In interactive mode, open a PR first.
 
-**Story Issue Body Update (both modes):**
-
-Before transitioning to `human:po:plan-review`, you MUST append a Task Catalog link to the story issue body:
-
-1. Check the story issue for a `tasks:inline` label. If present, skip this step — `lead_breakdown` will handle inline task content later.
-2. Read the current story issue body via `query-issues.sh --type single --issue <N>`.
-3. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` (workspace root), or from `git -C team remote get-url origin`.
-4. Append the following section to the existing body:
-
-   ```markdown
-
-   ## Task Catalog
-
-   [View task catalog](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<epic#>-<slug>/tasks/<story#>-<slug>/README.md) — N tasks
-   ```
-
-   For standalone stories (no parent epic), use: `specs/<project>/tasks/<story#>-<slug>/README.md`
-
-5. Write the updated body to a temp file and call `update-issue.sh --issue <N> --body-file <path>`.
-
 **Constraints (interactive mode):**
-- You MUST open a PR on the team repo with the task files, linked to the story issue(s). Use a single PR per session, not one per story. The PR title should reference the epic (e.g., `[#1] Tasks: Tmux agent sessions`). The PR body should list all stories decomposed in this session and link to each catalog README.
+- You MUST open a PR on the team repo with the task files, linked to the story issue(s). Use a single PR per session, not one per story. The PR title MUST reference the epic (e.g., `[#1] Tasks: Tmux agent sessions`). The PR body MUST list all stories decomposed in this session and link to each catalog README.
 - If a PR already exists on the current branch, push to the same branch and update the PR body to include the new stories.
+- You MUST add the PR to the project board with status `human:po:plan-review`. The PR MUST be added as a project item so it is visible in the board-driven workflow alongside the story issues.
 - You MUST move all decomposed stories to `human:po:plan-review` using the `status-workflow` skill.
-- You MUST inform the user that the PR is open and stories are in plan-review.
+- You MUST inform the user that the PR is open, on the board, and stories are in plan-review.
 
 **Constraints (auto mode):**
 - You MUST NOT open a PR — specs are committed directly to the team repo
+- Since specs are committed directly to `main`, you MUST append the Task Catalog link to each story issue body immediately (same procedure as the interactive Step 11 "Story Issue Body Update", but executed here since there is no merge step). Check for `tasks:inline` label before appending.
 - You MUST NOT transition the story status — the calling hat's quality gate handles the transition to `human:po:plan-review` after adversarial review passes
 - You MUST NOT post comments — the calling hat handles comment attribution
 - You MUST write a completion summary to the catalog README
@@ -451,12 +438,32 @@ Wait for human review of the PR. Auto mode ends at Step 9.
 
 ### 11. Merge PR (Interactive Only)
 
-Merge the approved PR.
+Merge the approved PR and update story issue bodies with task catalog links.
 
 **Constraints:**
 - You MUST ask the user for explicit confirmation before merging
 - You MUST merge the PR using the `github-project` skill only after the user confirms
 - You MUST NOT merge without user confirmation
+
+**Story Issue Body Update (after merge):**
+
+After the PR is merged, you MUST append a Task Catalog link to each decomposed story's issue body. This MUST happen after merge so that `main` branch links resolve.
+
+1. Check each story issue for a `tasks:inline` label. If present, skip that story — `lead_breakdown` will handle inline task content later.
+2. Read the current story issue body via `query-issues.sh --type single --issue <N>`.
+3. Derive `TEAM_REPO` from `.botminter.workspace` field `team_repo` (workspace root), or from `git -C team remote get-url origin`.
+4. Append the following section to the existing body:
+
+   ```markdown
+
+   ## Task Catalog
+
+   [View task catalog](https://github.com/<TEAM_REPO>/blob/main/specs/<project>/<epic#>-<slug>/tasks/<story#>-<slug>/README.md) — N tasks
+   ```
+
+   For standalone stories (no parent epic), use: `specs/<project>/tasks/<story#>-<slug>/README.md`
+
+5. Write the updated body to a temp file and call `update-issue.sh --issue <N> --body-file <path>`.
 
 ### 12. Externalize
 
@@ -478,7 +485,7 @@ Handle externalization for ALL stories in scope, based on labels on each parent 
 **Externalization constraints:**
 - You MUST check for `tasks:inline` and `tasks:off` labels on each parent story issue before externalizing
 - Default (no label): create GitHub issues with `agent-internal` label for each task. Read each `.code-task-NN.md` file to extract title and objective. Create a Task-type sub-issue of the parent Story using the sub-issue operation.
-- `tasks:inline`: add a structured task catalog section to the parent story issue body (replacing the Task Catalog link section if one was appended in Step 9)
+- `tasks:inline`: add a structured task catalog section to the parent story issue body (replacing the Task Catalog link section if one was appended in Step 11 or auto mode Step 9)
 - `tasks:off`: skip externalization entirely — repo files only
 - The `.code-task-NN.md` files and catalog README are ALWAYS generated regardless of externalization mode
 - Each story's tasks are externalized independently — different stories in the same batch MAY have different externalization modes based on their labels
@@ -509,8 +516,8 @@ This skill can be invoked with `operation: externalize` to run Step 12 only, ski
 5. Return the externalization results (mode used, issues created, verification status)
 
 **What this operation does NOT do (caller responsibilities):**
-- Does NOT transition status — the calling hat handles `eng:dev:implement`
-- Does NOT post comments — the calling hat handles comment attribution
+- You MUST NOT transition status — the calling hat handles `eng:dev:implement`
+- You MUST NOT post comments — the calling hat handles comment attribution
 
 ## Code Task Format Specification
 
@@ -523,7 +530,7 @@ Each code task file MUST follow this exact structure:
 - **Story**: [story reference or issue link]
 - **Requirements**: [CATEGORY-NN IDs this task addresses]
 - **Acceptance Criteria**: [AC-NN IDs this task satisfies]
-- **Design Doc**: [path to design.md]
+- **Design Doc**: [design.md](../../design.md)
 
 ## Objective
 [What to implement — clear, bounded description of the deliverable]
@@ -533,10 +540,10 @@ Each code task file MUST follow this exact structure:
 
 ## Reference Documentation
 **Required:**
-- Design: [path to detailed design document]
+- Design: [design.md](../../design.md)
 
 **Additional References (if relevant to this task):**
-- [Specific research document or section]
+- [Specific research document or section — use relative links]
 
 **Note:** You MUST read the detailed design document before beginning implementation. Read additional references as needed for context.
 
@@ -569,7 +576,7 @@ Each code task file MUST follow this exact structure:
 - **Requirements**: [CATEGORY-NN, CATEGORY-NN]
 - **Acceptance Criteria**: [AC-NN, AC-NN]
 - **Parent Story**: [story reference or issue link]
-- **Design Doc**: [path to design.md]
+- **Design Doc**: [design.md](../../design.md)
 
 ## Metadata
 - **Complexity**: [Low/Medium/High]
